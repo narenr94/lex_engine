@@ -24,6 +24,8 @@ class Manager {
 
         void processOwnableSpace(unsigned short int positionOffset, SpaceType type);
 
+        void processTaxSpace();
+
         void sellAssetsForMoney(Player& player, SellOptions& soldOptions);
 
         bool isSpaceOwned(unsigned short int spaceIndex, Player* owner) const;
@@ -40,9 +42,18 @@ class Manager {
 
         void playerBuySpace(Player& player, unsigned short int spaceIndex);
 
-        void executeBankruptcy(Player& bankruptPlayer, Player& creditorPlayer);
+        void executeBankruptcyViaPlayer(Player& bankruptPlayer, Player& creditorPlayer);
+
+        void executeBankruptcyViaBank(Player& bankruptPlayer);
 
         void playerBuildHouseHotel(Player& player, unsigned short int spaceIndex, unsigned short int currentHouses);
+
+        bool ownsAllColor(SpaceColor sc, Player& owner);
+
+        unsigned short int askCurrentPlayerToRoll2D6();
+
+        void moveCurrentPlayer(unsigned short int positionOffset);
+
 
     public:
         Manager(std::vector<std::string> playerNames, unsigned int startingMoney);
@@ -50,7 +61,7 @@ class Manager {
 
         std::string getCurrentPlayerName() const;
 
-        void moveCurrentPlayer(unsigned short int positionOffset);
+        
 
 
 

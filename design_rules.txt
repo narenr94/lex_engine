@@ -128,3 +128,43 @@ Green,Pacific Ave.,$300,$150,$200,$26,$130,$390,$900,$1100,$1275
 
 Dark Blue,Park Place,$350,$175,$200,$35,$175,$500,$1100,$1300,$1500
 ,Boardwalk,$400,$200,$200,$50,$200,$600,$1400,$1700,$2000
+
+
+Chance
+Card Text / Objective,Mechanical Game Action
+Advance to GO,Immediately move your token to GO and collect $200.
+Advance to Boardwalk,"Move directly to Boardwalk. If owned, pay rent; if unowned, you may buy it."
+Advance to Illinois Avenue,"Move directly to Illinois Ave. If you pass GO on the way, collect $200."
+Advance to St. Charles Place,"Move directly to St. Charles Place. If you pass GO on the way, collect $200."
+Advance to nearest Railroad (x2),"There are two of these cards in the deck. Advance to the next railroad ahead of you. If unowned, you may buy it. If owned, pay the owner TWICE the regular rent."
+Advance to nearest Utility,"Advance to the nearest utility ahead of you. If unowned, you may buy it. If owned, throw the dice fresh and pay 10 times the new dice roll."
+Take a trip to Reading Railroad,"Move directly to Reading Railroad. If you pass GO on the way, collect $200."
+Go Back 3 Spaces,Move your token backward three spaces and immediately execute the action of the space you land on.
+Go Directly to Jail,"Move directly to the Jail space. Do not pass GO, do not collect $200."
+Get Out of Jail Free,"Keep this card until needed to leave Jail for free, or sell/trade it to another player."
+Make General Repairs,The Wealth Killer: Pay the Bank $25 per house and $100 per hotel you currently own on the board.
+Speeding Fine,Pay a flat penalty of $15 to the Bank.
+You have been elected Chairman of the Board,Pay $50 to every other player at the table.
+Bank pays you dividend,Collect a flat $50 from the Bank.
+Your building loan matures,Collect a flat $150 from the Bank.
+
+
+Community Chest
+Card Text / Objective,Mechanical Game Action
+Advance to GO,Immediately move your token to GO and collect $200.
+Bank error in your favor,Collect a flat $200 from the Bank.
+Doctor's fees,Pay a flat penalty of $50 to the Bank.
+From sale of stock,Collect a flat $50 from the Bank.
+Get Out of Jail Free,"Keep this card until needed to leave Jail for free, or sell/trade it to another player."
+Go Directly to Jail,"Move directly to the Jail space. Do not pass GO, do not collect $200."
+Grand Opera Night / Street Party,Collect $50 from every other player at the table (classic versions say $10 or $50 depending on the edition age; standard modern classic specifies $50).
+Holiday / Xmas Fund matures,Collect a flat $100 from the Bank.
+Income tax refund,Collect a flat $20 from the Bank.
+It is your birthday,Collect $10 from every other player at the table.
+Life insurance matures,Collect a flat $100 from the Bank.
+Pay hospital fees,Pay a flat penalty of $100 to the Bank.
+Pay school fees,Pay a flat penalty of $50 to the Bank ($150 in legacy vintage editions).
+Receive consultancy / service fee,Collect a flat $25 from the Bank.
+Assessed for street repairs,The Structural Tax: Pay the Bank $40 per house and $115 per hotel you currently own. (Note that this is slightly more expensive per building than the Chance version!)
+You have won second prize in a beauty contest,Collect a flat $10 from the Bank.
+You inherit money,Collect a flat $100 from the Bank.

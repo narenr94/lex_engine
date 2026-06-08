@@ -2,7 +2,7 @@
 
 #include <string>
 
-struct SpaceConfig; //Forward Declaration
+struct SpacesConfig; //Forward Declaration
 struct SellOptions; //Forward Declaration
 
 class PlayerInputStrategy{
@@ -14,9 +14,9 @@ class PlayerInputStrategy{
 
         virtual SellOptions askToSellForMoney(unsigned int amountNeeded, const SellOptions& options) = 0;
 
-        virtual bool askToBuySpace(SpaceConfig& spConfig) = 0;
+        virtual bool askToBuySpace(SpacesConfig& spConfig) = 0;
 
-        virtual unsigned short int askToBuildHouseHotel(SpaceConfig& spConfig, unsigned short int currentHouses, unsigned short int maxBuyable) = 0;
+        virtual unsigned short int askToBuildHouseHotel(SpacesConfig& spConfig, unsigned short int currentHouses, unsigned short int maxBuyable) = 0;
 
         unsigned int calculatePropertySellValue(unsigned short int propertyIndex, unsigned short int houses);
 
@@ -35,9 +35,9 @@ class PlayerInputCli : public PlayerInputStrategy {
                                             const std::vector<unsigned short int>& utilities);
 
         unsigned short int getPlayerChoice(unsigned short int optionsCount);
-        void displayPropertyCard(SpaceConfig& spConfig);
-        void displayRailroadCard(SpaceConfig& spConfig);
-        void displayUtilityCard(SpaceConfig& spConfig);
+        void displayPropertyCard(SpacesConfig& spConfig);
+        void displayRailroadCard(SpacesConfig& spConfig);
+        void displayUtilityCard(SpacesConfig& spConfig);
    
     public:
         PlayerInputCli();
@@ -47,7 +47,7 @@ class PlayerInputCli : public PlayerInputStrategy {
         void roll2d6Dice(unsigned short int& roll);
         SellOptions askToSellForMoney(unsigned int amountNeeded, const SellOptions& options);
 
-        bool askToBuySpace(SpaceConfig& spConfig);
+        bool askToBuySpace(SpacesConfig& spConfig);
 
-        unsigned short int askToBuildHouseHotel(SpaceConfig& spConfig, unsigned short int currentHouses, unsigned short int maxBuyable);
+        unsigned short int askToBuildHouseHotel(SpacesConfig& spConfig, unsigned short int currentHouses, unsigned short int maxBuyable);
 };

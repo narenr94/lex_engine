@@ -5,14 +5,26 @@
 
 #include <stdexcept>
 #include <algorithm>
+#include <random>
 
+bool endGame = false;
 
 
 Manager::Manager(std::vector<std::string> playerNames, unsigned int startingMoney)
-    : m_playerInputStrategy(0) 
+    : m_playerInputStrategy(0) , m_currentPlayerIndex(0)
 {
     for (unsigned short int i = 0; i < playerNames.size(); ++i) {
         m_players.emplace_back(playerNames[i], 0, startingMoney);
+    }
+
+    std::random_device rd;
+    std::mt19937 g(rd());
+
+    std::shuffle(m_players.begin(), m_players.end(), g);
+
+    PRINT("Player order:");
+    for(auto& pl : m_players){
+        PRINT(pl.getName());
     }
 
     for(const auto& space : spacesConfig){
@@ -20,6 +32,13 @@ Manager::Manager(std::vector<std::string> playerNames, unsigned int startingMone
     }
 
     m_playerInputStrategy = new PlayerInputCli(); // Default to CLI input strategy
+
+    while(!endGame){
+        moveCurrentPlayer(askCurrentPlayerToRoll2D6());
+        m_currentPlayerIndex = (m_currentPlayerIndex + 1) % m_players.size();
+    }
+    
+
 }
 
 
@@ -41,9 +60,23 @@ void Manager::moveCurrentPlayer(unsigned short int positionOffset) {
     if(m_players.empty()){
         throw std::runtime_error("No players in the game.");
     }
-    m_players[m_currentPlayerIndex].updatePosition(positionOffset);
 
-    processCurrentPlayerLanding(positionOffset);
+    if((m_players[m_currentPlayerIndex].getPosition() + positionOffset) > (spacesConfig.size() - 1)){
+        m_players[m_currentPlayerIndex].updateMoney(GO_PAY); 
+    }
+
+    try{
+
+        m_players[m_currentPlayerIndex].updatePosition(positionOffset);
+
+        processCurrentPlayerLanding(positionOffset);
+
+    }
+    catch(const std::exception& e){
+        // Handle exceptions that may arise during landing processing (e.g., player bankruptcy)
+        PRINT("Error moving current player " + std::string(e.what()));
+
+    }
 
 }
 
@@ -66,8 +99,9 @@ void Manager::processOwnableSpace(unsigned short int positionOffset, SpaceType t
 
             switch(type){
                 case SpaceType::Property:
-                    unsigned short int currentHouses = player.getPropertyHouses(m_players[m_currentPlayerIndex].getPosition());
-                    if(currentHouses < HOUSE_HOTEL_CONVERSION){
+                    unsigned short int currentHouses = m_players[m_currentPlayerIndex].getPropertyHouses(m_players[m_currentPlayerIndex].getPosition());
+                    if(currentHouses < HOUSE_HOTEL_CONVERSION 
+                        && ownsAllColor(spacesConfig[m_players[m_currentPlayerIndex].getPosition()].color, m_players[m_currentPlayerIndex])){
                         playerBuildHouseHotel(m_players[m_currentPlayerIndex], m_players[m_currentPlayerIndex].getPosition(), currentHouses);
                     }
                     return;
@@ -98,19 +132,48 @@ void Manager::processOwnableSpace(unsigned short int positionOffset, SpaceType t
     return;
 }
 
+void Manager::processTaxSpace(){
+    std::string taxName = spacesConfig[m_players[m_currentPlayerIndex].getPosition()].name;
+
+    if(taxName == "Income Tax"){
+        if(m_players[m_currentPlayerIndex].getMoney() >= INCOME_TAX){
+            m_players[m_currentPlayerIndex].updateMoney(-1 * INCOME_TAX);
+        }
+        else{
+            executeBankruptcyViaBank(m_players[m_currentPlayerIndex]);
+        }
+    }
+    else if(taxName == "Luxury Tax"){
+
+        if(m_players[m_currentPlayerIndex].getMoney() >= LUXURY_TAX){
+            m_players[m_currentPlayerIndex].updateMoney(-1 * LUXURY_TAX);
+        }
+        else{
+            executeBankruptcyViaBank(m_players[m_currentPlayerIndex]);
+        }
+        
+    }
+    else{
+        throw std::runtime_error("Invalid tax!!!");
+    }
+}
+
 void Manager::processCurrentPlayerLanding(unsigned short int positionOffset) {
     SpaceType spaceType = spacesConfig[m_players[m_currentPlayerIndex].getPosition()].type;
 
     try{
         switch(spaceType){
             case SpaceType::Property:
+                processOwnableSpace(positionOffset, SpaceType::Property);
                 break;
             case SpaceType::Railroad:
+                processOwnableSpace(positionOffset, SpaceType::Railroad);
                 break;
             case SpaceType::Utility:
+                processOwnableSpace(positionOffset, SpaceType::Utility);
                 break;
             case SpaceType::Tax:
-                // Handle tax payment logic here
+                processTaxSpace();
                 break;
             case SpaceType::CardSpace:
                 // Handle card drawing logic here
@@ -186,23 +249,29 @@ unsigned short int Manager::calculatePropertyRent(Player& owner, unsigned short 
     }
     
     //does player own all properties in the color group?
-    for(const auto& group : m_colorGroups){
-        if(std::find(group.second.begin(), group.second.end(), position) != group.second.end()){
-            bool ownsAll = true;
-            for(const auto& propertyIndex : group.second){
-                if(!owner.ownsSpace(propertyIndex)){
-                    ownsAll = false;
-                    break;
-                }
-            }
-            if(ownsAll){
-                return spacesConfig[position].getRent(rentType::NoHouse) * COLOR_MONOPOLY_BONUS; // Double rent for owning all properties in the color group
-            }
-        }
+    if(ownsAllColor(spacesConfig[position].color, owner)){
+        return spacesConfig[position].getRent(rentType::NoHouse) * COLOR_MONOPOLY_BONUS; // Double rent for owning all properties in the color group
     }
 
     //basic rent with no houses and no color group monopoly
     return spacesConfig[position].getRent(rentType::NoHouse);
+}
+
+bool Manager::ownsAllColor(SpaceColor sc, Player& owner){
+    
+    if(m_colorGroups.count(sc) > 0){
+        std::vector<unsigned short int> colorSpaceIndices =  m_colorGroups[sc];
+        for(auto& cSpaceIndex : colorSpaceIndices){
+            if(!owner.ownsSpace(cSpaceIndex)){
+                return false;
+            }
+        }
+    }
+    else{
+        throw std::runtime_error("color not found in m_colorGroups!!!");
+    }
+
+    return true;
 }
 
 
@@ -233,7 +302,7 @@ void Manager::moneyTransfer(Player& from, Player& to, unsigned int amount) {
         }
         else{
             //declare bankruptcy
-            executeBankruptcy(from, to);
+            executeBankruptcyViaPlayer(from, to);
         }
 
         
@@ -273,7 +342,7 @@ void Manager::sellAssetsForMoney(Player& from, SellOptions& soldOptions) {
 
 }
 
-void Manager::executeBankruptcy(Player& bankruptPlayer, Player& creditorPlayer){
+void Manager::executeBankruptcyViaPlayer(Player& bankruptPlayer, Player& creditorPlayer){
 
     SellOptions currAssets;
     currAssets.formulateSellOptions(bankruptPlayer);
@@ -309,7 +378,7 @@ void Manager::playerBuySpace(Player& player, unsigned short int spaceIndex){
         return;
     }
     
-    buy = m_playerInputStrategy->askToBuySpace(spacesConfig[spaceIndex]);
+    buy = m_playerInputStrategy->askToBuySpace(const_cast<SpacesConfig&>(spacesConfig[spaceIndex]));
 
     if(buy){
         for(auto& unOwned : m_unownedSpaces){
@@ -318,13 +387,13 @@ void Manager::playerBuySpace(Player& player, unsigned short int spaceIndex){
                 m_unownedSpaces.erase(std::remove(m_unownedSpaces.begin(), m_unownedSpaces.end(), unOwned), m_unownedSpaces.end());
                 switch(temp->type){
                     case SpaceType::Property:
-                        player.addProperty(temp);
+                        player.addProperty(std::move(temp));
                         break;
                     case SpaceType::Railroad:
-                        player.addRailroad(temp);
+                        player.addRailroad(std::move(temp));
                         break;
                     case SpaceType::Utility:
-                        player.addUtility(temp);
+                        player.addUtility(std::move(temp));
                         break;
                     default:
                         throw std::runtime_error("Bought un-buyable space type!!!");
@@ -336,7 +405,7 @@ void Manager::playerBuySpace(Player& player, unsigned short int spaceIndex){
 }
 
 
-void playerBuildHouseHotel(Player& player, unsigned short int spaceIndex, unsigned short int currentHouses){
+void Manager::playerBuildHouseHotel(Player& player, unsigned short int spaceIndex, unsigned short int currentHouses){
 
     unsigned short int maxBuyable = player.getMoney() / spacesConfig[spaceIndex].houseHotelCost;
 
@@ -344,10 +413,41 @@ void playerBuildHouseHotel(Player& player, unsigned short int spaceIndex, unsign
         maxBuyable = HOUSE_HOTEL_CONVERSION;
     }
 
-    unsigned short int housesToBuild = m_playerInputStrategy->askToBuildHouseHotel(spacesConfig[spaceIndex], currentHouses, maxBuyable);
+    unsigned short int housesToBuild = m_playerInputStrategy->askToBuildHouseHotel(const_cast<SpacesConfig&>(spacesConfig[spaceIndex]), currentHouses, maxBuyable);
 
     player.addHousesToProperty(spaceIndex, housesToBuild);
 
-    player.updateMoney(-std::static_cast<int>(housesToBuild * spacesConfig[spaceIndex].houseHotelCost));
+    player.updateMoney(-static_cast<int>(housesToBuild * spacesConfig[spaceIndex].houseHotelCost));
 
+}
+
+void Manager::executeBankruptcyViaBank(Player& bankruptPlayer){
+    SellOptions currAssets;
+    currAssets.formulateSellOptions(bankruptPlayer);
+
+    for(auto& prop : currAssets.propertiesToSell){
+
+        m_unownedSpaces.push_back(std::move(bankruptPlayer.removeProperty(prop.first)));
+
+    }
+
+    for(auto& rail : currAssets.railroadsToSell){
+        m_unownedSpaces.push_back(std::move(bankruptPlayer.removeRailroad(rail)));
+    }
+
+    for(auto& util : currAssets.utilitiesToSell){
+        m_unownedSpaces.push_back(std::move(bankruptPlayer.removeUtility(util)));
+    }
+
+    bankruptPlayer.updateMoney(-static_cast<int>(bankruptPlayer.getMoney()));
+
+    m_players.erase(std::remove_if(m_players.begin(), m_players.end(), 
+        [&bankruptPlayer](const Player& player) { return player.getName() == bankruptPlayer.getName(); }), m_players.end());
+}
+
+unsigned short int Manager::askCurrentPlayerToRoll2D6(){
+    PRINT("Player to roll:" + m_players[m_currentPlayerIndex].name);
+    unsigned short int roll;
+    m_playerInputStrategy->roll2d6Dice(roll);
+    return roll;
 }

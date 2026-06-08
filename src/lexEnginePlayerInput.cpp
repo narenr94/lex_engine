@@ -200,7 +200,7 @@ SellOptions PlayerInputCli::askToSellForMoney(unsigned int amountNeeded, const S
 }
 
 
-bool PlayerInputCli::askToBuySpace(SpaceConfig& spConfig){
+bool PlayerInputCli::askToBuySpace(SpacesConfig& spConfig){
     PRINT("You have landed on " + spConfig.name + " which is available for purchase.");
     switch(spConfig.type){
         case SpaceType::Property:
@@ -235,7 +235,7 @@ bool PlayerInputCli::askToBuySpace(SpaceConfig& spConfig){
     return false;
 }
 
-void PlayerInputCli::displayPropertyCard(SpaceConfig& spConfig){
+void PlayerInputCli::displayPropertyCard(SpacesConfig& spConfig){
     PRINT("=====PROPERTY=========");
     PRINT("Name:" + spConfig.name);
     PRINT("Color:" + spaceColorToString(spConfig.color));
@@ -253,7 +253,7 @@ void PlayerInputCli::displayPropertyCard(SpaceConfig& spConfig){
     PRINT("======================");
 }
 
-void PlayerInputCli::displayRailroadCard(SpaceConfig& spConfig){
+void PlayerInputCli::displayRailroadCard(SpacesConfig& spConfig){
     PRINT("=====RAILROAD=========");
     PRINT("Name:" + spConfig.name);
     PRINT("Cost:" + std::to_string(spConfig.cost));
@@ -268,7 +268,7 @@ void PlayerInputCli::displayRailroadCard(SpaceConfig& spConfig){
 }
 
 
-void PlayerInputCli::displayUtilityCard(SpaceConfig& spConfig){
+void PlayerInputCli::displayUtilityCard(SpacesConfig& spConfig){
     PRINT("=====UTILITY=========");
     PRINT("Name:" + spConfig.name);
     PRINT("Cost:" + std::to_string(spConfig.cost));
@@ -281,7 +281,7 @@ void PlayerInputCli::displayUtilityCard(SpaceConfig& spConfig){
 }
 
 
-unsigned short int PlayerInputCli::askToBuildHouseHotel(SpaceConfig& spConfig, unsigned short int currentHouses, unsigned short int maxBuyable){
+unsigned short int PlayerInputCli::askToBuildHouseHotel(SpacesConfig& spConfig, unsigned short int currentHouses, unsigned short int maxBuyable){
 
     PRINT("Would you like to build house/hotel on your below property?");
     displayPropertyCard(spConfig);

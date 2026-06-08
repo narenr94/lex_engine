@@ -8,6 +8,11 @@
 #define COLOR_MONOPOLY_BONUS 2
 #define HOUSE_HOTEL_SELLBACK_RATIO 0.5
 
+#define INCOME_TAX 200
+#define LUXURY_TAX 100
+
+#define GO_PAY 200
+
 #define PRINT(text) do { std::cout << text << std::endl; } while (0)
 
 class Player; // Forward declaration
@@ -67,8 +72,6 @@ struct SpacesConfig{
     unsigned short int getRent(rentType type) const {
         return rent[static_cast<int>(type)];
     }
-
-
 
 };
 
