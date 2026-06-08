@@ -2,6 +2,9 @@
 
 #include <string>
 
+struct SpaceConfig; //Forward Declaration
+struct SellOptions; //Forward Declaration
+
 class PlayerInputStrategy{
 
     public:
@@ -9,12 +12,30 @@ class PlayerInputStrategy{
 
         virtual void roll2d6Dice(unsigned short int& roll) = 0;
 
-        virtual void askToSellForMoney(unsigned int amountNeeded, const SellOptions& options) = 0; 
+        virtual SellOptions askToSellForMoney(unsigned int amountNeeded, const SellOptions& options) = 0;
+
+        virtual bool askToBuySpace(SpaceConfig& spConfig) = 0;
+
+        unsigned int calculatePropertySellValue(unsigned short int propertyIndex, unsigned short int houses);
+
+        unsigned int calculateRailroadSellValue(unsigned short int railroadIndex);
+
+        unsigned int calculateUtilitySellValue(unsigned short int utilityIndex);
         
 };
 
 
 class PlayerInputCli : public PlayerInputStrategy {
+
+    private:
+        std::vector<unsigned short int> PlayerInputCli::displayLiquidationMenu(const std::map<unsigned short int, unsigned short int>& properties, 
+                                            const std::vector<unsigned short int>& railroads, 
+                                            const std::vector<unsigned short int>& utilities);
+
+        unsigned short int getPlayerChoice(unsigned short int optionsCount);
+        void displayPropertyCard(SpaceConfig& spConfig);
+        void displayRailroadCard(SpaceConfig& spConfig);
+        void displayUtilityCard(SpaceConfig& spConfig);
    
     public:
         PlayerInputCli();
@@ -22,5 +43,7 @@ class PlayerInputCli : public PlayerInputStrategy {
 
 
         void roll2d6Dice(unsigned short int& roll);
-        void askToSellForMoney(unsigned int amountNeeded, const SellOptions& options);
+        SellOptions askToSellForMoney(unsigned int amountNeeded, const SellOptions& options);
+
+        bool askToBuySpace(SpaceConfig& spConfig);
 };

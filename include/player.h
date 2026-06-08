@@ -2,6 +2,9 @@
 
 #include <vector>
 #include <map>
+#include <memory>
+
+struct SpacesConfig; // Forward declaration
 
 class Player {
 
@@ -10,9 +13,15 @@ class Player {
         unsigned short int position;
         unsigned int money;
 
-        std::map<unsigned short int, unsigned short int> ownedProperties; // Map of property index to number of houses (0-4) or hotel (5)
-        std::vector<unsigned short int> ownedRailroads;
-        std::vector<unsigned short int> ownedUtilities;
+        std::map<std::unique_ptr<SpacesConfig>, unsigned short int> ownedProperties; // Map of property index to number of houses (0-4) or hotel (5)
+        std::vector<std::unique_ptr<SpacesConfig>> ownedRailroads;
+        std::vector<std::unique_ptr<SpacesConfig>> ownedUtilities;
+
+        bool ownsProperty(unsigned short int propertyIndex) const;
+
+        bool ownsRailroad(unsigned short int railroadIndex) const;
+
+        bool ownsUtility(unsigned short int utilityIndex) const;
 
     public:
         Player(std::string name, unsigned short int position, unsigned int money);
@@ -23,14 +32,14 @@ class Player {
 
         void updateMoney(int amountOffset);
 
-        void addProperty(unsigned short int propertyIndex, unsigned short int houses = 0);
-        void removeProperty(unsigned short int propertyIndex);
+        void addProperty(std::unique_ptr<SpacesConfig> property, unsigned short int houses = 0);
+        std::unique_ptr<SpacesConfig> removeProperty(unsigned short int propertyIndex);
 
-        void addRailroad(unsigned short int railroadIndex);
-        void removeRailroad(unsigned short int railroadIndex);
+        void addRailroad(std::unique_ptr<SpacesConfig> railroadIndex);
+        std::unique_ptr<SpacesConfig>  removeRailroad(unsigned short int railroadIndex);
 
-        void addUtility(unsigned short int utilityIndex);
-        void removeUtility(unsigned short int utilityIndex);
+        void addUtility(std::unique_ptr<SpacesConfig> utilityIndex);
+        std::unique_ptr<SpacesConfig>  removeUtility(unsigned short int utilityIndex);
 
         std::string getName() const;
 
@@ -43,15 +52,14 @@ class Player {
         void addHousesToProperty(unsigned short int propertyIndex, unsigned short int housesToAdd);
         void removeHousesFromProperty(unsigned short int propertyIndex, unsigned short int housesToRemove);
 
-        bool ownsProperty(unsigned short int propertyIndex) const;
-
-        bool ownsRailroad(unsigned short int railroadIndex) const;
-
-        bool ownsUtility(unsigned short int utilityIndex) const;
+        bool ownsSpace(unsigned short int spaceIndex) const;
 
         unsigned int getSellableNetWorth() const;
 
         unsigned int getTotalNetWorth() const;
 
-        void askToSellForMoney(unsigned int amountNeeded);
+        std::vector<std::pair<unsigned short int, unsigned short int>> getOwnedPropertyIndices() const;
+        std::vector<unsigned short int> getOwnedRailways() const;
+        std::vector<unsigned short int> getOwnedUtilities() const;
+    
 };

@@ -1,6 +1,8 @@
 #include "player.h"
 #include "spaces.h"
 
+#include <algorithm>
+
 Player::Player(std::string name, unsigned short int position, unsigned int money)
     : name(name), position(position), money(money) {}
 
@@ -18,40 +20,58 @@ void Player::updateMoney(int amountOffset) {
     }
 }
 
-void Player::addProperty(unsigned short int propertyIndex, unsigned short int houses) {
-    if (!ownsProperty(propertyIndex)) {
-        ownedProperties[propertyIndex] = houses;
-    }
+void Player::addProperty(std::unique_ptr<SpacesConfig> property, unsigned short int houses) {
+    ownedProperties[std::move(property)] = houses;
 }
 
-void Player::removeProperty(unsigned short int propertyIndex) {
-    if (ownsProperty(propertyIndex)) {
-        ownedProperties.erase(propertyIndex);
+std::unique_ptr<SpacesConfig> Player::removeProperty(unsigned short int propertyIndex) {
+    
+    auto it = std::find_if(ownedProperties.begin(), ownedProperties.end(), 
+        [propertyIndex](const std::pair<std::unique_ptr<SpacesConfig>, unsigned short int>& prop) {
+            return prop.first->index == propertyIndex;
+        });
+
+    if (it != ownedProperties.end()) {
+        std::unique_ptr<SpacesConfig> ret = std::move(const_cast<std::unique_ptr<SpacesConfig>&>(it->first));
+        
+        ownedProperties.erase(it);
+        
+        return ret; 
     }
+
+    return nullptr;
 }
 
-void Player::addRailroad(unsigned short int railroadIndex) {
-    if (!ownsRailroad(railroadIndex)) {
-        ownedRailroads.push_back(railroadIndex);
-    }
+void Player::addRailroad(std::unique_ptr<SpacesConfig> railroadIndex) {
+    ownedRailroads.push_back(std::move(railroadIndex));
 }
 
-void Player::removeRailroad(unsigned short int railroadIndex) {
-    if (ownsRailroad(railroadIndex)) {
-        ownedRailroads.erase(std::remove(ownedRailroads.begin(), ownedRailroads.end(), railroadIndex), ownedRailroads.end());
+std::unique_ptr<SpacesConfig>  Player::removeRailroad(unsigned short int railroadIndex) {
+    
+    for(auto& rail : ownedRailroads){
+        if(rail->index == railroadIndex){
+            std::unique_ptr<SpacesConfig> ret = std::move(rail);
+            ownedRailroads.erase(std::remove(ownedRailroads.begin(), ownedRailroads.end(), rail), ownedRailroads.end());
+            return ret;
+        }
     }
+
+    return nullptr;
 }
 
-void Player::addUtility(unsigned short int utilityIndex) {
-    if (!ownsUtility(utilityIndex)) {
-        ownedUtilities.push_back(utilityIndex);
-    }
+void Player::addUtility(std::unique_ptr<SpacesConfig> utility) {
+    ownedUtilities.push_back(std::move(utility));
 }
 
-void Player::removeUtility(unsigned short int utilityIndex) {
-    if (ownsUtility(utilityIndex)) {
-        ownedUtilities.erase(std::remove(ownedUtilities.begin(), ownedUtilities.end(), utilityIndex), ownedUtilities.end());
+std::unique_ptr<SpacesConfig> Player::removeUtility(unsigned short int utilityIndex) {
+    for(auto& util : ownedUtilities){
+        if(util->index == utilityIndex){
+            std::unique_ptr<SpacesConfig> ret = std::move(util);
+            ownedUtilities.erase(std::remove(ownedUtilities.begin(), ownedUtilities.end(), util), ownedUtilities.end());
+            return ret;
+        }
     }
+    return nullptr;
 }
 
 std::string Player::getName() const {
@@ -67,40 +87,66 @@ unsigned int Player::getMoney() const {
 }
 
 bool Player::ownsProperty(unsigned short int propertyIndex) const {
-    return ownedProperties.find(propertyIndex) != ownedProperties.end();
+    for(auto& prop : ownedProperties){
+        if(prop.first->index == propertyIndex){
+            return true;
+        }
+    }
+
+    return false;
 }
 
 bool Player::ownsRailroad(unsigned short int railroadIndex) const {
-    return std::find(ownedRailroads.begin(), ownedRailroads.end(), railroadIndex) != ownedRailroads.end();
+    for(auto& rail : ownedRailroads){
+        if(rail->index == railroadIndex){
+            return true;
+        }
+    }
+
+    return false;
 }
 
 bool Player::ownsUtility(unsigned short int utilityIndex) const {
-    return std::find(ownedUtilities.begin(), ownedUtilities.end(), utilityIndex) != ownedUtilities.end();
+    
+    for(auto& util : ownedUtilities){
+        if(util->index == utilityIndex){
+            return true;
+        }
+    }
+
+    return false;
 }
 
 unsigned short int Player::getPropertyHouses(unsigned short int propertyIndex) const {
-    auto it = ownedProperties.find(propertyIndex);
-    if (it != ownedProperties.end()) {
-        return it->second;
+    for(auto& prop : ownedProperties){
+        if(prop.first->index == propertyIndex){
+            return prop.second;
+        }
     }
     return 0; 
 }
 
 void Player::addHousesToProperty(unsigned short int propertyIndex, unsigned short int housesToAdd) {
-    if (ownsProperty(propertyIndex)) {
-        ownedProperties[propertyIndex] += housesToAdd;
-        if(ownedProperties[propertyIndex] > HOUSE_HOTEL_CONVERSION) {
-            ownedProperties[propertyIndex] = HOUSE_HOTEL_CONVERSION; // Maximum of 5 houses (4 houses + 1 hotel)
+    
+    for(auto& prop : ownedProperties){
+        if(prop.first->index == propertyIndex){
+            prop.second += housesToAdd;
+            if(prop.second > HOUSE_HOTEL_CONVERSION){
+                prop.second = prop.second;
+            }
         }
     }
 }
 
 void Player::removeHousesFromProperty(unsigned short int propertyIndex, unsigned short int housesToRemove) {
-    if (ownsProperty(propertyIndex)) {
-        if (ownedProperties[propertyIndex] >= housesToRemove) {
-            ownedProperties[propertyIndex] -= housesToRemove;
-        } else {
-            ownedProperties[propertyIndex] = 0; // Can't have negative houses
+    for(auto& prop : ownedProperties){
+        if(prop.first->index == propertyIndex){
+            if(housesToRemove > prop.second){
+                prop.second = 0;
+            }
+            else{
+                prop.second -= housesToRemove;
+            }
         }
     }
     return;
@@ -110,19 +156,17 @@ unsigned int Player::getSellableNetWorth() const {
     unsigned int netWorth = money;
 
     for (const auto& property : ownedProperties) {
-        unsigned short int propertyIndex = property.first;
-        unsigned short int houses = property.second;
-
-        netWorth += spacesConfig[propertyIndex].mortgageValue; // Add property mortgageValue
-        netWorth += houses * spacesConfig[propertyIndex].houseHotelCost * HOUSE_HOTEL_SELLBACK_RATIO; // Add value of houses/hotel at sellback ratio
+        
+        netWorth += property.first->mortgageValue; // Add property mortgageValue
+        netWorth += property.second * property.first->houseHotelCost * HOUSE_HOTEL_SELLBACK_RATIO; // Add value of houses/hotel at sellback ratio
     }
 
     for (const auto& railroad : ownedRailroads) {
-        netWorth += spacesConfig[railroad].mortgageValue; // Add railroad mortgageValue
+        netWorth += railroad->mortgageValue; // Add railroad mortgageValue
     }
 
     for (const auto& utility : ownedUtilities) {
-        netWorth += spacesConfig[utility].mortgageValue; // Add utility mortgageValue
+        netWorth += utility->mortgageValue; // Add utility mortgageValue
     }
 
     return netWorth;
@@ -132,24 +176,54 @@ unsigned int Player::getTotalNetWorth() const {
     unsigned int netWorth = money;
 
     for (const auto& property : ownedProperties) {
-        unsigned short int propertyIndex = property.first;
-        unsigned short int houses = property.second;
-
-        netWorth += spacesConfig[propertyIndex].cost; // Add property cost
-        netWorth += houses * spacesConfig[propertyIndex].houseHotelCost; // Add value of houses/hotel at full cost
+        
+        netWorth += property.first->cost; // Add property cost
+        netWorth += property.second * property.first->houseHotelCost; // Add value of houses/hotel at full cost
     }
 
     for (const auto& railroad : ownedRailroads) {
-        netWorth += spacesConfig[railroad].cost; // Add railroad cost
+        netWorth += railroad->cost; // Add railroad cost
     }
 
     for (const auto& utility : ownedUtilities) {
-        netWorth += spacesConfig[utility].cost; // Add utility cost
+        netWorth += utility->cost; // Add utility cost
     }
 
     return netWorth;
 }
 
-void Player::askToSellForMoney(unsigned int amountNeeded) {
-     
+bool Player::ownsSpace(unsigned short int spaceIndex) const {
+    return ownsProperty(spaceIndex) || ownsRailroad(spaceIndex) || ownsUtility(spaceIndex);
+}
+
+std::vector<std::pair<unsigned short int, unsigned short int>> Player::getOwnedPropertyIndices() const{
+    std::vector<std::pair<unsigned short int, unsigned short int>> propertyIndices;
+
+    for (const auto& prop : ownedProperties) {
+        propertyIndices.push_back({prop.first->index, prop.second}); // Store property index and number of houses/hotel
+    }
+
+    return propertyIndices;
+}
+std::vector<unsigned short int> Player::getOwnedRailways() const{
+
+    std::vector<unsigned short int> railwayIndices;
+
+    for(const auto& rail : ownedRailroads){
+        railwayIndices.push_back(rail->index);
+    }
+
+    return railwayIndices;
+
+}
+std::vector<unsigned short int> Player::getOwnedUtilities() const{
+
+    std::vector<unsigned short int> utilityIndices;
+
+    for(const auto& util : ownedUtilities){
+        utilityIndices.push_back(util->index);
+    }
+
+    return utilityIndices;
+
 }

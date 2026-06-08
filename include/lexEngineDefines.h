@@ -1,10 +1,14 @@
 #pragma once
 
 #include <string>
+#include <map>
+#include <iostream>
 
 #define HOUSE_HOTEL_CONVERSION 5
 #define COLOR_MONOPOLY_BONUS 2
 #define HOUSE_HOTEL_SELLBACK_RATIO 0.5
+
+#define PRINT(text) do { std::cout << text << std::endl; } while (0)
 
 class Player; // Forward declaration
 
@@ -27,6 +31,18 @@ enum class SpaceColor{
     Green,
     DarkBlue,
     NA
+};
+
+const std::vector<std::pair<SpaceColor, std::string>> g_spaceColorToString = {
+    {SpaceColor::Brown, "brown"},
+    {SpaceColor::LightBlue, "light blue"},
+    {SpaceColor::Magenta, "magenta"},
+    {SpaceColor::Orange, "orange"},
+    {SpaceColor::Red, "red"},
+    {SpaceColor::Yellow, "yellow"},
+    {SpaceColor::Green, "green"},
+    {SpaceColor::DarkBlue, "dark blue"},
+    {SpaceColor::NA, "NA"}
 };
 
 enum class rentType{
@@ -65,3 +81,5 @@ struct SellOptions{
     void formulateSellOptions(const Player& player);
 
 };
+
+std::string spaceColorToString(SpaceColor sc);

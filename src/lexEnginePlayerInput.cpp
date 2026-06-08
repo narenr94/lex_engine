@@ -2,19 +2,9 @@
 #include "spaces.h"
 
 #include <random>
-#include <iostream>
 #include <algorithm>
-#include <map>
-#include <vector>
+#include <iostream>
 
-#define PRINT(text) do { std::cout << text << std::endl; } while (0)
-
-// Mock Data Registry for compilation context
-struct PropertyData {
-    std::string name;
-    unsigned int house_sale_value;
-    unsigned int mortgage_value;
-};
 
 PlayerInputCli::PlayerInputCli() {}
 PlayerInputCli::~PlayerInputCli() {}
@@ -45,123 +35,158 @@ void PlayerInputCli::roll2d6Dice(unsigned short int& roll){
 
 }
 
-// Helper Struct to map flat CLI menu options (1, 2, 3...) back to concrete actions
-struct MenuAction {
-    std::string action_type; // "house", "mortgage_prop", "railroad", "utility"
-    unsigned short int asset_index;
-    unsigned int cash_value;
-};
+unsigned int PlayerInputStrategy::calculatePropertySellValue(unsigned short int propertyIndex, unsigned short int houses) {
 
-// --- HELPER FUNCTION 1: POPULATE MENU OPTIONS ---
-std::map<int, MenuAction> buildLiquidationMenu(
-    const std::map<unsigned short int, unsigned short int>& houses,
-    const std::vector<unsigned short int>& railroads,
-    const std::vector<unsigned short int>& utilities) 
-{
-    std::map<int, MenuAction> menu;
-    int choice_counter = 1;
+    // Base sell value is half the cost of the property
+    unsigned int baseValue = spacesConfig[propertyIndex].mortgageValue;
 
-    // Houses/Hotels
-    for (auto const& [idx, count] : houses) {
-        if (count > 0) {
-            menu[choice_counter++] = { (count == 5 ? "hotel" : "house"), idx, spacesConfig[idx].houseHotelCost * HOUSE_HOTEL_SELLBACK_RATIO };
-        }
-    }
-    // Bare Properties to Mortgage
-    for (auto const& [idx, count] : houses) {
-        if (count == 0) {
-            menu[choice_counter++] = { "mortgage_prop", idx, spacesConfig[idx].mortgageValue };
-        }
-    }
-    // Railroads
-    for (auto idx : railroads) {
-        menu[choice_counter++] = { "railroad", idx, spacesConfig[idx].mortgageValue };
-    }
-    // Utilities
-    for (auto idx : utilities) {
-        menu[choice_counter++] = { "utility", idx, spacesConfig[idx].mortgageValue };
+    // Add value for any houses/hotel on the property
+    if (houses > 0) {
+        baseValue += houses * spacesConfig[propertyIndex].houseHotelCost * HOUSE_HOTEL_SELLBACK_RATIO;
     }
 
-    return menu;
+    return baseValue;
 }
 
-// --- HELPER FUNCTION 2: RENDER MENU TO CLI ---
-void displayLiquidationMenu(int debt, const std::map<int, MenuAction>& menu) {
-    std::cout << "\n--------------------------------------------------\n";
-    std::cout << "Remaining Debt: $" << debt << "\n";
-    std::cout << "Select an asset to liquidate:\n\n";
+unsigned int PlayerInputStrategy::calculateRailroadSellValue(unsigned short int railroadIndex){
+    return spacesConfig[railroadIndex].mortgageValue;
+}
 
-    for (auto const& [choice, action] : menu) {
-        std::string propName = spacesConfig[action.asset_index].name;
-        
-        if (action.action_type == "house" || action.action_type == "hotel") {
-            std::cout << "  " << choice << ") Sell 1 " << action.action_type << " on " << propName;
+unsigned int PlayerInputStrategy::calculateUtilitySellValue(unsigned short int utilityIndex){
+    return spacesConfig[utilityIndex].mortgageValue;
+}
+
+
+std::vector<unsigned short int> PlayerInputCli::displayLiquidationMenu(const std::map<unsigned short int, unsigned short int>& properties, 
+                                            const std::vector<unsigned short int>& railroads, 
+                                            const std::vector<unsigned short int>& utilities) {
+    
+
+    std::vector<unsigned short int> ret;
+    
+    unsigned short int optionNumber = 0;
+    // Build menu based on current assets left to sell
+    for (const auto& prop : properties) {
+        // Add house options to menu
+        optionNumber++;
+        PRINT("Option " + std::to_string(optionNumber) + ": Sell Property " + std::to_string(prop.first) + " with "
+         + std::to_string(prop.second) + " houses - " + "for $" + std::to_string(calculatePropertySellValue(prop.first, prop.second)));
+        ret.push_back(prop.first);
+    }
+    for (const auto& railroad : railroads) {
+        // Add railroad options to menu
+        optionNumber++;
+        PRINT("Option " + std::to_string(optionNumber) + ": Sell Railroad " + std::to_string(railroad) + " - " + "for $" + std::to_string(calculateRailroadSellValue(railroad)));
+        ret.push_back(railroad);
+
+    }
+    for (const auto& utility : utilities) {
+        // Add utility options to menu
+        optionNumber++;
+        PRINT("Option " + std::to_string(optionNumber) + ": Sell Utility " + std::to_string(utility) + " - " + "for $" + std::to_string(calculateUtilitySellValue(utility)));
+        ret.push_back(utility);
+    }
+    return ret;
+}
+
+unsigned short int PlayerInputCli::getPlayerChoice(unsigned short int optionsCount) {
+    unsigned short int choice = 0;
+    while (true) {
+        PRINT("Please enter the option number of the asset you wish to sell:");
+        if (!(std::cin >> choice)) {
+            PRINT("Invalid input. Please enter a number.");
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            continue;
+        }
+
+        if (choice >= 1 && choice <= optionsCount) {
+            break; // Valid choice
         } else {
-            std::cout << "  " << choice << ") Mortgage " << propName;
+            PRINT("Invalid option. Please enter a number between 1 and " 
+                  + std::to_string(optionsCount) + ".");
         }
-        std::cout << " (Gives +$" << action.cash_value << ")\n";
-    }
-}
-
-// --- HELPER FUNCTION 3: GET VALID INPUT ---
-int getPlayerChoice(int max_choice) {
-    int choice = 0;
-    std::cout << "\nEnter selection (1-" << max_choice << "): ";
-    std::cin >> choice;
-
-    if (std::cin.fail() || choice < 1 || choice > max_choice) {
-        std::cin.clear();
-        std::cin.ignore(10000, '\n');
-        std::cout << "Invalid selection. Please try again.\n";
-        return -1; // Flag invalid entry
     }
     return choice;
 }
 
-void PlayerInputCli::askToSellForMoney(unsigned int amountNeeded, const SellOptions& options){
+
+SellOptions PlayerInputCli::askToSellForMoney(unsigned int amountNeeded, const SellOptions& options){
     // Local mutable copies of assets left to sell
-    auto trackingHouses = options.propertiesToSell;
+    auto trackingProperties = options.propertiesToSell;
     auto trackingRailroads = options.railroadsToSell;
     auto trackingUtilities = options.utilitiesToSell;
 
     int remainingDebt = static_cast<int>(amountNeeded);
+
+    SellOptions soldOptions; 
 
     PRINT("==================================================");
     PRINT("          FINANCIAL CRISIS: LIQUIDATION REQUIRED   ");
     PRINT("==================================================");
 
     while (remainingDebt > 0) {
-        // 1. Rebuild options mapping dynamically based on what's left
-        auto menu = buildLiquidationMenu(trackingHouses, trackingRailroads, trackingUtilities);
 
-        if (menu.empty()) {
-            PRINT("");
-            PRINT("You have no assets left to liquidate. BANKRUPT!");
+        PRINT("");
+        PRINT("You need to raise $" + std::to_string(remainingDebt) + " to cover your debts.");
+
+        // 1. Rebuild options mapping dynamically based on what's left
+        std::vector<unsigned short int> optionsCount = displayLiquidationMenu(trackingProperties, trackingRailroads, trackingUtilities);
+
+        if(optionsCount.empty()){
+            PRINT("Unfortunately, you have no assets left to sell. You are bankrupt.");
             return;
         }
 
-        // 2. Display options & gather verified input
-        displayLiquidationMenu(remainingDebt, menu);
-        int choice = getPlayerChoice(menu.size());
-        if (choice == -1) continue; // Loop back if they typed garbage
+        // 2. Get player's choice
+        unsigned short int choice = getPlayerChoice(optionsCount.size());
+        
 
         // 3. Apply the selected modification
-        MenuAction selection = menu[choice];
-        remainingDebt -= selection.cash_value;
 
-        // Update local state arrays accordingly
-        if (selection.action_type == "house" || selection.action_type == "hotel") {
-            trackingHouses[selection.asset_index]--;
-        } 
-        else if (selection.action_type == "mortgage_prop") {
-            trackingHouses.erase(selection.asset_index);
-        } 
-        else if (selection.action_type == "railroad") {
-            trackingRailroads.erase(std::remove(trackingRailroads.begin(), trackingRailroads.end(), selection.asset_index), trackingRailroads.end());
-        } 
-        else if (selection.action_type == "utility") {
-            trackingUtilities.erase(std::remove(trackingUtilities.begin(), trackingUtilities.end(), selection.asset_index), trackingUtilities.end());
+        bool assetSold = false;
+
+        for(auto& prop : trackingProperties){
+            if(prop.first == optionsCount[choice - 1]){
+                // Selling a property
+                unsigned int sellValue = calculatePropertySellValue(prop.first, prop.second);
+                remainingDebt -= sellValue;
+                soldOptions.propertiesToSell[prop.first] = prop.second; // Record the sale of this property with its houses
+                trackingProperties.erase(prop.first); // Remove from available options
+                assetSold = true;
+                break;
+            }
         }
+
+        if(!assetSold){
+            for(auto& railroad : trackingRailroads){
+                if(railroad == optionsCount[choice - 1]){
+                    // Selling a railroad
+                    unsigned int sellValue = calculateRailroadSellValue(railroad);
+                    remainingDebt -= sellValue;
+                    soldOptions.railroadsToSell.push_back(railroad); // Record the sale of this railroad
+                    trackingRailroads.erase(std::remove(trackingRailroads.begin(), trackingRailroads.end(), railroad), trackingRailroads.end()); // Remove from available options
+                    assetSold = true;
+                    break;
+                }
+            }
+        }
+
+        if(!assetSold){
+            for(auto& utility : trackingUtilities){
+                if(utility == optionsCount[choice - 1]){
+                    // Selling a utility
+                    unsigned int sellValue = calculateUtilitySellValue(utility);
+                    remainingDebt -= sellValue;
+                    soldOptions.utilitiesToSell.push_back(utility); // Record the sale of this utility
+                    trackingUtilities.erase(std::remove(trackingUtilities.begin(), trackingUtilities.end(), utility), trackingUtilities.end()); // Remove from available options
+                    assetSold = true;
+                    break;
+                }
+            }
+        }
+
+
 
         PRINT("");
         PRINT("Asset successfully sold. Recalculating balances...");
@@ -172,4 +197,83 @@ void PlayerInputCli::askToSellForMoney(unsigned int amountNeeded, const SellOpti
     PRINT("");
 
 
+}
+
+
+bool PlayerInputCli::askToBuySpace(SpaceConfig& spConfig){
+    PRINT("You have landed on " + spConfig.name + " which is available for purchase.");
+    switch(spConfig.type){
+        case SpaceType::Property:
+            displayPropertyCard(spConfig);
+            break;
+        case SpaceType::Railroad:
+            displayRailroadCard(spConfig);
+            break;
+        case SpaceType::Utility:
+            displayUtilityCard(spConfig);
+            break;
+        default:
+            throw std::runtime_error("Trying to buy un-buyable space type!!!");
+    }
+    PRINT("Would you like to buy this property?");
+    PRINT("Option 1 : yes");
+    PRINT("Option 2 : no");
+
+    unsigned int choice = getPlayerChoice(2);
+
+    switch(choice){
+        case 1:
+            break;
+        case 2:
+            break;
+        default:
+            throw std::runtime_error("Invalid choice!!!");
+    }
+
+    
+}
+
+void PlayerInputCli::displayPropertyCard(SpaceConfig& spConfig){
+    PRINT("=====PROPERTY=========");
+    PRINT("Name:" + spConfig.name);
+    PRINT("Color:" + spaceColorToString(spConfig.color));
+    PRINT("Cost:" + std::to_string(spConfig.cost));
+    PRINT("Mortage:" + std::to_string(spConfig.mortgageValue));
+    PRINT("House/Hotel build cost:" + std::to_string(spConfig.houseHotelCost));
+
+    PRINT("No House rent:" + std::to_string(spConfig.rent[0]));
+    PRINT("1 House rent:" + std::to_string(spConfig.rent[1]));
+    PRINT("2 House rent:" + std::to_string(spConfig.rent[2]));
+    PRINT("3 House rent:" + std::to_string(spConfig.rent[3]));
+    PRINT("4 House rent:" + std::to_string(spConfig.rent[4]));
+    PRINT("Hotel rent:" + std::to_string(spConfig.rent[5]));
+
+    PRINT("======================");
+}
+
+void PlayerInputCli::displayRailroadCard(SpaceConfig& spConfig){
+    PRINT("=====RAILROAD=========");
+    PRINT("Name:" + spConfig.name);
+    PRINT("Cost:" + std::to_string(spConfig.cost));
+    PRINT("Mortage:" + std::to_string(spConfig.mortgageValue));
+
+    PRINT("If 1 railroad owned, rent:" + std::to_string(spConfig.rent[0]));
+    PRINT("If 2 railroad owned, rent:" + std::to_string(spConfig.rent[0] * 2));
+    PRINT("If 3 railroad owned, rent:" + std::to_string(spConfig.rent[0] * 3));
+    PRINT("If 4 railroad owned, rent:" + std::to_string(spConfig.rent[0] * 4));
+
+    PRINT("======================");
+}
+
+
+void PlayerInputCli::displayUtilityCard(SpaceConfig& spConfig){
+    PRINT("=====UTILITY=========");
+    PRINT("Name:" + spConfig.name);
+    PRINT("Cost:" + std::to_string(spConfig.cost));
+    PRINT("Mortage:" + std::to_string(spConfig.mortgageValue));
+
+    PRINT("If 1 utility owned, 4x dice roll!!!");
+    PRINT("If 2 utility owned, 4x dice roll!!!");
+
+    PRINT("======================");
 }
