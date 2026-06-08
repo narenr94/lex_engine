@@ -22,6 +22,8 @@ class Manager {
 
         void processCurrentPlayerLanding(unsigned short int positionOffset);
 
+        void processOwnableSpace(unsigned short int positionOffset, SpaceType type);
+
         void sellAssetsForMoney(Player& player, SellOptions& soldOptions);
 
         bool isSpaceOwned(unsigned short int spaceIndex, Player* owner) const;
@@ -39,6 +41,8 @@ class Manager {
         void playerBuySpace(Player& player, unsigned short int spaceIndex);
 
         void executeBankruptcy(Player& bankruptPlayer, Player& creditorPlayer);
+
+        void playerBuildHouseHotel(Player& player, unsigned short int spaceIndex, unsigned short int currentHouses);
 
     public:
         Manager(std::vector<std::string> playerNames, unsigned int startingMoney);

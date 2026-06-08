@@ -16,6 +16,8 @@ class PlayerInputStrategy{
 
         virtual bool askToBuySpace(SpaceConfig& spConfig) = 0;
 
+        virtual unsigned short int askToBuildHouseHotel(SpaceConfig& spConfig, unsigned short int currentHouses, unsigned short int maxBuyable) = 0;
+
         unsigned int calculatePropertySellValue(unsigned short int propertyIndex, unsigned short int houses);
 
         unsigned int calculateRailroadSellValue(unsigned short int railroadIndex);
@@ -46,4 +48,6 @@ class PlayerInputCli : public PlayerInputStrategy {
         SellOptions askToSellForMoney(unsigned int amountNeeded, const SellOptions& options);
 
         bool askToBuySpace(SpaceConfig& spConfig);
+
+        unsigned short int askToBuildHouseHotel(SpaceConfig& spConfig, unsigned short int currentHouses, unsigned short int maxBuyable);
 };

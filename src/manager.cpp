@@ -58,50 +58,57 @@ bool Manager::isSpaceOwned(unsigned short int spaceIndex, Player* owner) const {
     return false;
 }
 
+void Manager::processOwnableSpace(unsigned short int positionOffset, SpaceType type){
+    Player* owner;
+    if (isSpaceOwned(m_players[m_currentPlayerIndex].getPosition(), owner)) {
+
+        if(owner == &m_players[m_currentPlayerIndex]){
+
+            switch(type){
+                case SpaceType::Property:
+                    unsigned short int currentHouses = player.getPropertyHouses(m_players[m_currentPlayerIndex].getPosition());
+                    if(currentHouses < HOUSE_HOTEL_CONVERSION){
+                        playerBuildHouseHotel(m_players[m_currentPlayerIndex], m_players[m_currentPlayerIndex].getPosition(), currentHouses);
+                    }
+                    return;
+                    break;
+                case SpaceType::Railroad:
+                    //can do nothing
+                    return;
+                    break;
+                case SpaceType::Utility:
+                    //can do nothing
+                    return;
+                    break;
+                default:
+                    throw std::runtime_error("Processing unownable space!!!");
+            }
+
+        }
+        else{
+            // Handle rent payment logic here
+            unsigned short int rent = calculatePropertyRent(*owner, m_players[m_currentPlayerIndex].getPosition());
+            moneyTransfer(m_players[m_currentPlayerIndex], *owner, rent);
+        }
+        
+    } else {
+        // Handle property purchase logic here
+        playerBuySpace(m_players[m_currentPlayerIndex], m_players[m_currentPlayerIndex].getPosition());
+    }
+    return;
+}
+
 void Manager::processCurrentPlayerLanding(unsigned short int positionOffset) {
     SpaceType spaceType = spacesConfig[m_players[m_currentPlayerIndex].getPosition()].type;
 
     try{
         switch(spaceType){
             case SpaceType::Property:
-                {
-                    Player* owner;
-                    if (isSpaceOwned(m_players[m_currentPlayerIndex].getPosition(), owner)) {
-                        // Handle rent payment logic here
-                        unsigned short int rent = calculatePropertyRent(*owner, m_players[m_currentPlayerIndex].getPosition());
-                        moneyTransfer(m_players[m_currentPlayerIndex], *owner, rent);
-                    } else {
-                        // Handle property purchase logic here
-                        playerBuySpace(m_players[m_currentPlayerIndex], m_players[m_currentPlayerIndex].getPosition());
-                    }
-                    break;
-                }
+                break;
             case SpaceType::Railroad:
-                {
-                    Player* owner;
-                    if (isSpaceOwned(m_players[m_currentPlayerIndex].getPosition(), owner)) {
-                        // Handle rent payment logic here
-                        unsigned short int rent = calculateRailroadRent(*owner, m_players[m_currentPlayerIndex].getPosition());
-                        moneyTransfer(m_players[m_currentPlayerIndex], *owner, rent);
-                    } else {
-                        // Handle property purchase logic here
-                        playerBuySpace(m_players[m_currentPlayerIndex], m_players[m_currentPlayerIndex].getPosition());
-                    }
-                    break;
-                }
+                break;
             case SpaceType::Utility:
-                {
-                    Player* owner;
-                    if (isSpaceOwned(m_players[m_currentPlayerIndex].getPosition(), owner)) {
-                        // Handle rent payment logic here
-                        unsigned short int rent = calculateUtilityRent(*owner, m_players[m_currentPlayerIndex].getPosition(), positionOffset);
-                        moneyTransfer(m_players[m_currentPlayerIndex], *owner, rent);
-                    } else {
-                        // Handle property purchase logic here
-                        playerBuySpace(m_players[m_currentPlayerIndex], m_players[m_currentPlayerIndex].getPosition());
-                    }
-                    break;
-                }
+                break;
             case SpaceType::Tax:
                 // Handle tax payment logic here
                 break;
@@ -295,7 +302,14 @@ void Manager::executeBankruptcy(Player& bankruptPlayer, Player& creditorPlayer){
 
 void Manager::playerBuySpace(Player& player, unsigned short int spaceIndex){
 
-    bool buy = m_playerInputStrategy->askToBuySpace(spacesConfig[spaceIndex]);
+    bool buy = false;
+    
+    if(player.getMoney() < spacesConfig[spaceIndex].cost){
+        PRINT("Not enough money to try buy!!!");
+        return;
+    }
+    
+    buy = m_playerInputStrategy->askToBuySpace(spacesConfig[spaceIndex]);
 
     if(buy){
         for(auto& unOwned : m_unownedSpaces){
@@ -318,5 +332,22 @@ void Manager::playerBuySpace(Player& player, unsigned short int spaceIndex){
             }
         }
     }
+
+}
+
+
+void playerBuildHouseHotel(Player& player, unsigned short int spaceIndex, unsigned short int currentHouses){
+
+    unsigned short int maxBuyable = player.getMoney() / spacesConfig[spaceIndex].houseHotelCost;
+
+    if(maxBuyable > HOUSE_HOTEL_CONVERSION){
+        maxBuyable = HOUSE_HOTEL_CONVERSION;
+    }
+
+    unsigned short int housesToBuild = m_playerInputStrategy->askToBuildHouseHotel(spacesConfig[spaceIndex], currentHouses, maxBuyable);
+
+    player.addHousesToProperty(spaceIndex, housesToBuild);
+
+    player.updateMoney(-std::static_cast<int>(housesToBuild * spacesConfig[spaceIndex].houseHotelCost));
 
 }

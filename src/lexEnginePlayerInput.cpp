@@ -223,14 +223,16 @@ bool PlayerInputCli::askToBuySpace(SpaceConfig& spConfig){
 
     switch(choice){
         case 1:
+            return true;
             break;
         case 2:
+            return false;
             break;
         default:
             throw std::runtime_error("Invalid choice!!!");
     }
 
-    
+    return false;
 }
 
 void PlayerInputCli::displayPropertyCard(SpaceConfig& spConfig){
@@ -276,4 +278,24 @@ void PlayerInputCli::displayUtilityCard(SpaceConfig& spConfig){
     PRINT("If 2 utility owned, 4x dice roll!!!");
 
     PRINT("======================");
+}
+
+
+unsigned short int PlayerInputCli::askToBuildHouseHotel(SpaceConfig& spConfig, unsigned short int currentHouses, unsigned short int maxBuyable){
+
+    PRINT("Would you like to build house/hotel on your below property?");
+    displayPropertyCard(spConfig);
+    unsigned short int moreHouses = HOUSE_HOTEL_CONVERSION - currentHouses;
+    if(moreHouses > maxBuyable){
+        moreHouses = maxBuyable;
+    }
+    PRINT("You current have " + std:to_string(currentHouses) + " houses on the property, you can afford/build " + std:to_string(moreHouses) + " more!!!");
+
+    for(unsigned short int i = 0; i < moreHouses; i++){
+        PRINT("Option" + std::to_string(i +1) + ": " + std::to_string(i +1) + " house");
+    }
+    PRINT("At " + std::to_string(HOUSE_HOTEL_CONVERSION) + " houses will auto covert to hotel!!!");
+
+    return getPlayerChoice(moreHouses);
+
 }
