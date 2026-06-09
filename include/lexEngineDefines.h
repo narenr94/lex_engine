@@ -13,6 +13,12 @@
 
 #define GO_PAY 200
 
+#define PER_HOUSE_REPAIR_COST 25
+#define SPEEDING_FINE 15
+#define CHAIRMAN_OF_BOARD_AMOUNT 50
+#define BANK_DIVIDENT_AMOUNT 50
+#define BUILDING_LOAN_MATURES_AMOUNT 150
+
 #define PRINT(text) do { std::cout << text << std::endl; } while (0)
 
 class Player; // Forward declaration
@@ -71,6 +77,10 @@ struct SpacesConfig{
 
     unsigned short int getRent(rentType type) const {
         return rent[static_cast<int>(type)];
+    }
+
+    bool operator== (const SpacesConfig& other) const{
+        return (name == other.name);
     }
 
 };

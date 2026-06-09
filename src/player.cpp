@@ -4,7 +4,7 @@
 #include <algorithm>
 
 Player::Player(std::string name, unsigned short int position, unsigned int money)
-    : name(name), position(position), money(money) {}
+    : name(name), position(position), money(money), m_getOutOfJail(0) {}
 
 Player::~Player() {}
 
@@ -226,4 +226,16 @@ std::vector<unsigned short int> Player::getOwnedUtilities() const{
 
     return utilityIndices;
 
+}
+
+bool Player::canGetoutofJail() const{
+    return (m_getOutOfJail > 0) ? true : false;
+}
+
+void Player::incrementGetoutofJail(){
+    m_getOutOfJail++;
+}
+
+void Player::decrementGetoutofJail(){
+    m_getOutOfJail--;
 }

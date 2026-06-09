@@ -13,6 +13,8 @@ class Player {
         unsigned short int position;
         unsigned int money;
 
+        unsigned short int m_getOutOfJail;
+
         std::map<std::unique_ptr<SpacesConfig>, unsigned short int> ownedProperties; // Map of property index to number of houses (0-4) or hotel (5)
         std::vector<std::unique_ptr<SpacesConfig>> ownedRailroads;
         std::vector<std::unique_ptr<SpacesConfig>> ownedUtilities;
@@ -58,8 +60,17 @@ class Player {
 
         unsigned int getTotalNetWorth() const;
 
+        bool canGetoutofJail() const;
+
         std::vector<std::pair<unsigned short int, unsigned short int>> getOwnedPropertyIndices() const;
         std::vector<unsigned short int> getOwnedRailways() const;
         std::vector<unsigned short int> getOwnedUtilities() const;
+
+
+        bool canGetoutofJail() const;
+
+        void incrementGetoutofJail();
+
+        void decrementGetoutofJail();
     
 };

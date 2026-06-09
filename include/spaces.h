@@ -15,7 +15,7 @@ const std::vector<SpacesConfig> spacesConfig = {
     {7,"Chance",SpaceType::CardSpace ,SpaceColor::NA ,0 ,0 ,0 ,{0, 0, 0, 0, 0, 0}},
     {8,"Vermont Avenue",SpaceType::Property ,SpaceColor::LightBlue ,100 ,50 ,50 ,{6 ,30 ,90 ,270 ,400 ,550}},
     {9,"Connecticut Avenue",SpaceType::Property ,SpaceColor::LightBlue ,120 ,60 ,50 ,{8 ,40 ,100 ,300 ,450 ,600}},
-    {10,"Jail/Just Visiting",SpaceType::Special, SpaceColor::NA, 0, 0, 0, {0, 0, 0, 0, 0, 0}},
+    {10,"Jail",SpaceType::Special, SpaceColor::NA, 0, 0, 0, {0, 0, 0, 0, 0, 0}},
     {11,"St. Charles Place",SpaceType::Property, SpaceColor::Magenta, 140, 70, 100, {10, 50, 150, 450, 625, 750}},
     {12,"Electric Company",SpaceType::Utility, SpaceColor::NA, 150, 75, 0,{0, 0, 0, 0, 0, 0}},
     {13,"States Avenue",SpaceType::Property, SpaceColor::Magenta, 140, 70, 100,{10, 50, 150, 450, 625, 750}},

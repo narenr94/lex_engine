@@ -26,6 +26,8 @@ class Manager {
 
         void processTaxSpace();
 
+        void processCardSpace(bool isChance);
+
         void sellAssetsForMoney(Player& player, SellOptions& soldOptions);
 
         bool isSpaceOwned(unsigned short int spaceIndex, Player* owner) const;
@@ -53,6 +55,26 @@ class Manager {
         unsigned short int askCurrentPlayerToRoll2D6();
 
         void moveCurrentPlayer(unsigned short int positionOffset);
+
+        const SpacesConfig& getClosestSpaceType(SpaceType sType);
+
+        void payUpOrBankrupt(unsigned int amount);
+
+        bool doesPlayerExist(const std::string& plName);
+
+        //card actions
+
+        void advanceToGo();
+
+        void advanceToSpace(const SpacesConfig& sConfig);
+
+        void goBack3Spaces();
+
+        void makeGeneralRepairs();
+
+        void speedingFine();
+
+        void chairmanOfBoard();
 
 
     public:
