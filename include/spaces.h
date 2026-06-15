@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lexEngineDefines.h"
+#include "defines.h"
 
 #include <vector>
 

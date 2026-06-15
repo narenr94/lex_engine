@@ -4,12 +4,24 @@
 #include <vector>
 #include <map>
 
-struct SpacesConfig; //Forward Declaration
-struct SellOptions; //Forward Declaration
+
+//------------Forward Declaration
+struct SpacesConfig; 
+struct SellOptions;
+class Player;
+
+//-------------------------------
 
 class PlayerInputStrategy{
 
+    protected:
+
+        Player* m_player;
+
     public:
+
+        PlayerInputStrategy(Player* t_player);
+
         virtual ~PlayerInputStrategy() = default;
 
         virtual bool roll2d6Dice(unsigned short int& roll) = 0;
@@ -44,7 +56,7 @@ class PlayerInputCli : public PlayerInputStrategy {
         void displayUtilityCard(SpacesConfig& spConfig);
    
     public:
-        PlayerInputCli();
+        PlayerInputCli(Player* t_player);
         ~PlayerInputCli();
 
 

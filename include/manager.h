@@ -22,8 +22,7 @@ class Manager {
         unsigned short int m_currentPlayerIndex;
 
         std::map<SpaceColor, std::vector<unsigned short int>> m_colorGroups; // Map of color groups to their respective property indices
-        PlayerInputStrategy* m_playerInputStrategy = nullptr; // Strategy for handling player input (e.g., CLI)
-
+        
         std::vector<std::unique_ptr<SpacesConfig>> m_unownedSpaces;
 
         std::vector<std::pair<std::string, unsigned short int>> m_jail; //player name, number of double rolls tried
@@ -62,7 +61,7 @@ class Manager {
 
         void executeBankruptcyViaBank(Player& bankruptPlayer);
 
-        void playerBuildHouseHotel(Player& player, unsigned short int spaceIndex, unsigned short int currentHouses);
+        void playerBuildHouseHotel(Player& player, unsigned short int spaceIndex);
 
         bool ownsAllColor(SpaceColor sc, Player& owner);
 
@@ -112,7 +111,7 @@ class Manager {
 
 
     public:
-        Manager(std::vector<std::string> playerNames, unsigned int startingMoney);
+        Manager(std::vector<std::string> t_playerNames, unsigned int t_startingMoney);
         ~Manager();
 
         std::string getCurrentPlayerName() const;

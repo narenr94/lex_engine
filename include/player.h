@@ -5,7 +5,13 @@
 #include <memory>
 #include <string>
 
-struct SpacesConfig; // Forward declaration
+
+//----------Forward declaration
+struct SpacesConfig;
+struct SellOptions;
+class PlayerInputStrategy;
+
+//-----------------------------
 
 struct OwnedProperty{
     std::unique_ptr<SpacesConfig> property;
@@ -20,6 +26,8 @@ class Player {
         unsigned int money;
 
         unsigned short int m_getOutOfJail;
+
+        std::unique_ptr<PlayerInputStrategy> m_playerInputStrategy;
 
         std::vector<OwnedProperty> ownedProperties; // Map of property index to number of houses (0-4) or hotel (5)
         std::vector<std::unique_ptr<SpacesConfig>> ownedRailroads;
@@ -56,6 +64,8 @@ class Player {
 
         unsigned short int getPropertyHouses(unsigned short int propertyIndex) const;
 
+        unsigned short int getPropertyHouses(SpacesConfig& spConfig);
+
         void addHousesToProperty(unsigned short int propertyIndex, unsigned short int housesToAdd);
         void removeHousesFromProperty(unsigned short int propertyIndex, unsigned short int housesToRemove);
 
@@ -77,5 +87,18 @@ class Player {
         void decrementGetoutofJail();
 
         bool operator==(const Player& other) const;
+
+
+        //------relays 
+
+        bool roll2d6Dice(unsigned short int& roll);
+
+        SellOptions askToSellForMoney(unsigned int amountNeeded);
+
+        bool askToBuySpace(SpacesConfig& spConfig);
+
+        unsigned short int askToBuildHouseHotel(SpacesConfig& spConfig);
+
+        unsigned short int JailOptions();
     
 };

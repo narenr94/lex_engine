@@ -1,12 +1,22 @@
-#include "lexEnginePlayerInput.h"
+#include "playerInput.h"
 #include "spaces.h"
+#include "player.h"
 
 #include <random>
 #include <algorithm>
 #include <iostream>
 
 
-PlayerInputCli::PlayerInputCli() {}
+PlayerInputStrategy::PlayerInputStrategy(Player* t_player):
+m_player(t_player){
+
+}
+
+
+PlayerInputCli::PlayerInputCli(Player* t_player):
+PlayerInputStrategy(t_player)
+{}
+
 PlayerInputCli::~PlayerInputCli() {}
 
 unsigned short int rollDie(){
@@ -23,6 +33,7 @@ unsigned short int rollDie(){
 
 bool PlayerInputCli::roll2d6Dice(unsigned short int& roll){
 
+    PRINT("Player:" + m_player->getName());
     PRINT("Enter any key to roll dice!!!");
     std::cin.get(); // Wait for user input
 
@@ -123,6 +134,8 @@ SellOptions PlayerInputCli::askToSellForMoney(unsigned int amountNeeded, const S
 
     SellOptions soldOptions; 
 
+    PRINT("Player:" + m_player->getName());
+
     PRINT("==================================================");
     PRINT("          FINANCIAL CRISIS: LIQUIDATION REQUIRED   ");
     PRINT("==================================================");
@@ -204,6 +217,7 @@ SellOptions PlayerInputCli::askToSellForMoney(unsigned int amountNeeded, const S
 
 
 bool PlayerInputCli::askToBuySpace(SpacesConfig& spConfig){
+    PRINT("Player:" + m_player->getName());
     PRINT("You have landed on " + spConfig.name + " which is available for purchase.");
     switch(spConfig.type){
         case SpaceType::Property:
@@ -286,6 +300,7 @@ void PlayerInputCli::displayUtilityCard(SpacesConfig& spConfig){
 
 unsigned short int PlayerInputCli::askToBuildHouseHotel(SpacesConfig& spConfig, unsigned short int currentHouses, unsigned short int maxBuyable){
 
+    PRINT("Player:" + m_player->getName());
     PRINT("Would you like to build house/hotel on your below property?");
     displayPropertyCard(spConfig);
     unsigned short int moreHouses = HOUSE_HOTEL_CONVERSION - currentHouses;
@@ -305,6 +320,7 @@ unsigned short int PlayerInputCli::askToBuildHouseHotel(SpacesConfig& spConfig, 
 
 unsigned short int PlayerInputCli::JailOptions(bool getOutOfJailCardAvailable){
 
+    PRINT("Player:" + m_player->getName());
     PRINT("You are currently in Jail. Please select an option to get out of jail:");
     PRINT("Option 1 : Pay $" + std::to_string(JAIL_RELEASE_AMOUNT) + " to get out of jail");
     PRINT("Option 2 : Attempt to roll doubles to get out of jail");

@@ -1,7 +1,7 @@
 #include "manager.h"
 #include "player.h"
 #include "spaces.h"
-#include "lexEnginePlayerInput.h"
+#include "playerInput.h"
 #include "cards.h"
 #include "special.h"
 
@@ -12,11 +12,11 @@
 bool endGame = false;
 
 
-Manager::Manager(std::vector<std::string> playerNames, unsigned int startingMoney)
-    : m_playerInputStrategy(0) , m_currentPlayerIndex(0)
+Manager::Manager(std::vector<std::string> t_playerNames, unsigned int t_startingMoney)
+    : m_currentPlayerIndex(0)
 {
-    for (unsigned short int i = 0; i < playerNames.size(); ++i) {
-        m_players.emplace_back(playerNames[i], 0, startingMoney);
+    for (unsigned short int i = 0; i < t_playerNames.size(); ++i) {
+        m_players.emplace_back(t_playerNames[i], 0, t_startingMoney);
     }
 
     std::random_device rd;
@@ -35,20 +35,13 @@ Manager::Manager(std::vector<std::string> playerNames, unsigned int startingMone
         }
         
     }
-
-    m_playerInputStrategy = new PlayerInputCli(); // Default to CLI input strategy
-
-       
+      
     gameLoop();
 
 }
 
 
 Manager::~Manager() {
-    if(m_playerInputStrategy){
-        delete m_playerInputStrategy;
-        m_playerInputStrategy = nullptr;
-    }
 }
 
 void Manager::gameLoop(){
@@ -165,7 +158,7 @@ void Manager::processOwnableSpace(unsigned short int positionOffset, SpaceType t
                         unsigned short int currentHouses = m_players[m_currentPlayerIndex].getPropertyHouses(m_players[m_currentPlayerIndex].getPosition());
                         if(currentHouses < HOUSE_HOTEL_CONVERSION 
                             && ownsAllColor(spacesConfig[m_players[m_currentPlayerIndex].getPosition()].color, m_players[m_currentPlayerIndex])){
-                            playerBuildHouseHotel(m_players[m_currentPlayerIndex], m_players[m_currentPlayerIndex].getPosition(), currentHouses);
+                            playerBuildHouseHotel(m_players[m_currentPlayerIndex], m_players[m_currentPlayerIndex].getPosition());
                         }
                     }
                     return;
@@ -339,9 +332,7 @@ void Manager::moneyTransfer(Player& from, Player& to, unsigned int amount) {
         bool canMakeUpDifference = (from.getSellableNetWorth() >= amount);
         if(canMakeUpDifference){
             //ask from player to sell assets to make up the difference
-            SellOptions options;
-            options.formulateSellOptions(from);
-            SellOptions soldOptions = m_playerInputStrategy->askToSellForMoney(amount - from.getMoney(), options);
+            SellOptions soldOptions = from.askToSellForMoney(amount - from.getMoney());
             sellAssetsForMoney(from, soldOptions);
 
             if(from.getMoney() >= amount){
@@ -373,9 +364,7 @@ void Manager::moneyTransferBank(Player& from, unsigned int amount) {
         bool canMakeUpDifference = (from.getSellableNetWorth() >= amount);
         if(canMakeUpDifference){
             //ask from player to sell assets to make up the difference
-            SellOptions options;
-            options.formulateSellOptions(from);
-            SellOptions soldOptions = m_playerInputStrategy->askToSellForMoney(amount - from.getMoney(), options);
+            SellOptions soldOptions = from.askToSellForMoney(amount - from.getMoney());
             sellAssetsForMoney(from, soldOptions);
 
             if(from.getMoney() >= amount){
@@ -460,7 +449,7 @@ void Manager::playerBuySpace(Player& player, unsigned short int spaceIndex){
         return;
     }
     
-    buy = m_playerInputStrategy->askToBuySpace(const_cast<SpacesConfig&>(spacesConfig[spaceIndex]));
+    buy = player.askToBuySpace(const_cast<SpacesConfig&>(spacesConfig[spaceIndex]));
 
     if(buy){
         for(auto& unOwned : m_unownedSpaces){
@@ -487,15 +476,9 @@ void Manager::playerBuySpace(Player& player, unsigned short int spaceIndex){
 }
 
 
-void Manager::playerBuildHouseHotel(Player& player, unsigned short int spaceIndex, unsigned short int currentHouses){
+void Manager::playerBuildHouseHotel(Player& player, unsigned short int spaceIndex){
 
-    unsigned short int maxBuyable = player.getMoney() / spacesConfig[spaceIndex].houseHotelCost;
-
-    if(maxBuyable > HOUSE_HOTEL_CONVERSION){
-        maxBuyable = HOUSE_HOTEL_CONVERSION;
-    }
-
-    unsigned short int housesToBuild = m_playerInputStrategy->askToBuildHouseHotel(const_cast<SpacesConfig&>(spacesConfig[spaceIndex]), currentHouses, maxBuyable);
+    unsigned short int housesToBuild = player.askToBuildHouseHotel(const_cast<SpacesConfig&>(spacesConfig[spaceIndex]));
 
     player.addHousesToProperty(spaceIndex, housesToBuild);
 
@@ -527,8 +510,7 @@ void Manager::executeBankruptcyViaBank(Player& bankruptPlayer){
 }
 
 bool Manager::askCurrentPlayerToRoll2D6(unsigned short int& roll){
-    PRINT("Player to roll:" + m_players[m_currentPlayerIndex].getName());
-    return m_playerInputStrategy->roll2d6Dice(roll);
+    return m_players[m_currentPlayerIndex].roll2d6Dice(roll);
 }
 
 
@@ -904,7 +886,7 @@ void Manager::Jail(){
 
     }
     else{ //new jailee
-        unsigned short int choice = m_playerInputStrategy->JailOptions(m_players[m_currentPlayerIndex].canGetoutofJail());
+        unsigned short int choice = m_players[m_currentPlayerIndex].JailOptions();
 
         switch(choice){
             case 0: // Pay to get out of jail

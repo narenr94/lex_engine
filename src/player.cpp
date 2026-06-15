@@ -1,10 +1,15 @@
 #include "player.h"
+#include "playerInput.h"
 #include "spaces.h"
 
 #include <algorithm>
 
 Player::Player(std::string name, unsigned short int position, unsigned int money)
-    : name(name), position(position), money(money), m_getOutOfJail(0) {}
+    : name(name), position(position), money(money), m_getOutOfJail(0) {
+
+    m_playerInputStrategy = std::make_unique<PlayerInputCli>(this); // Default to CLI input strategy
+
+}
 
 void Player::updatePosition(unsigned short int positionOffset) {
     position = (position + positionOffset) % spacesConfig.size(); 
@@ -113,6 +118,15 @@ bool Player::ownsUtility(unsigned short int utilityIndex) const {
 unsigned short int Player::getPropertyHouses(unsigned short int propertyIndex) const {
     for(auto& prop : ownedProperties){
         if(prop.property->index == propertyIndex){
+            return prop.houses;
+        }
+    }
+    return 0; 
+}
+
+unsigned short int Player::getPropertyHouses(SpacesConfig& spConfig){
+    for(auto& prop : ownedProperties){
+        if(prop.property->name == spConfig.name){
             return prop.houses;
         }
     }
@@ -234,4 +248,37 @@ void Player::decrementGetoutofJail(){
 
 bool Player::operator==(const Player& other) const {
     return name == other.getName();
+}
+
+
+bool Player::roll2d6Dice(unsigned short int& roll){
+    return m_playerInputStrategy->roll2d6Dice(roll);
+}
+
+SellOptions Player::askToSellForMoney(unsigned int amountNeeded){
+    SellOptions options;
+    options.formulateSellOptions(*this);
+    return m_playerInputStrategy->askToSellForMoney(amountNeeded, options);
+}
+
+bool Player::askToBuySpace(SpacesConfig& spConfig){
+    return m_playerInputStrategy->askToBuySpace(spConfig);
+}
+
+unsigned short int Player::askToBuildHouseHotel(SpacesConfig& spConfig){
+
+    unsigned short int maxBuyable = getMoney() / spConfig.houseHotelCost;
+
+    if(maxBuyable > HOUSE_HOTEL_CONVERSION){
+        maxBuyable = HOUSE_HOTEL_CONVERSION;
+    }
+
+    unsigned short int currentHouses = getPropertyHouses(spConfig);
+
+    return m_playerInputStrategy->askToBuildHouseHotel(spConfig, currentHouses, maxBuyable);
+}
+
+unsigned short int Player::JailOptions(){
+    bool getOutOfJailCardAvailable = canGetoutofJail();
+    return m_playerInputStrategy->JailOptions(getOutOfJailCardAvailable);
 }
