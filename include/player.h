@@ -3,8 +3,14 @@
 #include <vector>
 #include <map>
 #include <memory>
+#include <string>
 
 struct SpacesConfig; // Forward declaration
+
+struct OwnedProperty{
+    std::unique_ptr<SpacesConfig> property;
+    unsigned short int houses; // 0-4 for houses, 5 for hotel
+};
 
 class Player {
 
@@ -15,7 +21,7 @@ class Player {
 
         unsigned short int m_getOutOfJail;
 
-        std::map<std::unique_ptr<SpacesConfig>, unsigned short int> ownedProperties; // Map of property index to number of houses (0-4) or hotel (5)
+        std::vector<OwnedProperty> ownedProperties; // Map of property index to number of houses (0-4) or hotel (5)
         std::vector<std::unique_ptr<SpacesConfig>> ownedRailroads;
         std::vector<std::unique_ptr<SpacesConfig>> ownedUtilities;
 
@@ -27,7 +33,6 @@ class Player {
 
     public:
         Player(std::string name, unsigned short int position, unsigned int money);
-        ~Player();
     
 
         void updatePosition(unsigned short int positionOffset);
@@ -67,10 +72,10 @@ class Player {
         std::vector<unsigned short int> getOwnedUtilities() const;
 
 
-        bool canGetoutofJail() const;
-
         void incrementGetoutofJail();
 
         void decrementGetoutofJail();
+
+        bool operator==(const Player& other) const;
     
 };

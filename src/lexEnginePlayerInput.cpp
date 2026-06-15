@@ -21,7 +21,7 @@ unsigned short int rollDie(){
     return distribution(generator);
 }
 
-void PlayerInputCli::roll2d6Dice(unsigned short int& roll){
+bool PlayerInputCli::roll2d6Dice(unsigned short int& roll){
 
     PRINT("Enter any key to roll dice!!!");
     std::cin.get(); // Wait for user input
@@ -32,6 +32,8 @@ void PlayerInputCli::roll2d6Dice(unsigned short int& roll){
     roll = die1 + die2;
 
     PRINT("You rolled a " + std::to_string(die1) + " and a " + std::to_string(die2) + " for a total of " + std::to_string(roll));
+
+    return (die1 == die2); // Return true if doubles were rolled
 
 }
 
@@ -134,8 +136,9 @@ SellOptions PlayerInputCli::askToSellForMoney(unsigned int amountNeeded, const S
         std::vector<unsigned short int> optionsCount = displayLiquidationMenu(trackingProperties, trackingRailroads, trackingUtilities);
 
         if(optionsCount.empty()){
+
             PRINT("Unfortunately, you have no assets left to sell. You are bankrupt.");
-            return;
+            return soldOptions;
         }
 
         // 2. Get player's choice
@@ -196,7 +199,7 @@ SellOptions PlayerInputCli::askToSellForMoney(unsigned int amountNeeded, const S
     PRINT("Success! Your debt is completely cleared.");
     PRINT("");
 
-
+    return soldOptions;
 }
 
 
@@ -289,7 +292,7 @@ unsigned short int PlayerInputCli::askToBuildHouseHotel(SpacesConfig& spConfig, 
     if(moreHouses > maxBuyable){
         moreHouses = maxBuyable;
     }
-    PRINT("You current have " + std:to_string(currentHouses) + " houses on the property, you can afford/build " + std:to_string(moreHouses) + " more!!!");
+    PRINT("You current have " + std::to_string(currentHouses) + " houses on the property, you can afford/build " + std::to_string(moreHouses) + " more!!!");
 
     for(unsigned short int i = 0; i < moreHouses; i++){
         PRINT("Option" + std::to_string(i +1) + ": " + std::to_string(i +1) + " house");
@@ -298,4 +301,18 @@ unsigned short int PlayerInputCli::askToBuildHouseHotel(SpacesConfig& spConfig, 
 
     return getPlayerChoice(moreHouses);
 
+}
+
+unsigned short int PlayerInputCli::JailOptions(bool getOutOfJailCardAvailable){
+
+    PRINT("You are currently in Jail. Please select an option to get out of jail:");
+    PRINT("Option 1 : Pay $" + std::to_string(JAIL_RELEASE_AMOUNT) + " to get out of jail");
+    PRINT("Option 2 : Attempt to roll doubles to get out of jail");
+
+    if(getOutOfJailCardAvailable){
+        PRINT("Option 3 : Use a Get Out of Jail Free card (if you have one)");
+    }
+    
+
+    return getPlayerChoice(getOutOfJailCardAvailable ? 3 : 2);
 }

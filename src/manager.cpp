@@ -3,6 +3,7 @@
 #include "spaces.h"
 #include "lexEnginePlayerInput.h"
 #include "cards.h"
+#include "special.h"
 
 #include <stdexcept>
 #include <algorithm>
@@ -29,16 +30,16 @@ Manager::Manager(std::vector<std::string> playerNames, unsigned int startingMone
     }
 
     for(const auto& space : spacesConfig){
-        m_unownedSpaces.push_back(std::make_unique<SpacesConfig>(space));
+        if(isSpaceOwnable(space)){            
+            m_unownedSpaces.push_back(std::make_unique<SpacesConfig>(space));
+        }
+        
     }
 
     m_playerInputStrategy = new PlayerInputCli(); // Default to CLI input strategy
 
-    while(!endGame){
-        moveCurrentPlayer(askCurrentPlayerToRoll2D6());
-        m_currentPlayerIndex = (m_currentPlayerIndex + 1) % m_players.size();
-    }
-    
+       
+    gameLoop();
 
 }
 
@@ -48,6 +49,68 @@ Manager::~Manager() {
         delete m_playerInputStrategy;
         m_playerInputStrategy = nullptr;
     }
+}
+
+void Manager::gameLoop(){
+
+    bool rolledDoubles = false;
+
+    unsigned short int doublesRolledCount = 0;
+
+    while(!endGame){
+
+        try{
+
+            //if not attempting rolling doubles in jail
+            unsigned short int tempCount = 0; //dummy
+            if(isPlayerInJail(m_players[m_currentPlayerIndex], tempCount)){                
+
+                rolledDoubles = rollAndMoveCurrentPlayer();
+
+                if(!rolledDoubles){
+                    m_currentPlayerIndex = (m_currentPlayerIndex + 1) % m_players.size();
+                    doublesRolledCount = 0;
+                }
+                else
+                {
+                    doublesRolledCount++;
+                    if(doublesRolledCount == 3){
+                        // Send player to jail
+                        advanceToSpace(getSpaceConfigByName("Jail"));
+                        m_currentPlayerIndex = (m_currentPlayerIndex + 1) % m_players.size();
+                        doublesRolledCount = 0;
+                    }
+                }
+
+            }
+            else{
+                Jail();
+                m_currentPlayerIndex = (m_currentPlayerIndex + 1) % m_players.size();
+            }
+
+        }
+        catch(const std::exception& e){
+            // Handle exceptions that may arise during the game loop (e.g., player bankruptcy)
+            PRINT("Error in game loop: " + std::string(e.what()));
+            endGame = true; // End the game on critical errors
+        }
+        
+    }
+}
+
+bool Manager::rollAndMoveCurrentPlayer(){
+    unsigned short int roll = 0;
+
+    bool rolledDoubles = askCurrentPlayerToRoll2D6(roll);
+
+    try{
+        moveCurrentPlayer(roll);
+    }
+    catch(const std::exception& e){
+        PRINT("Error in moving player: " + std::string(e.what()));
+    }    
+
+    return rolledDoubles;
 }
 
 std::string Manager::getCurrentPlayerName() const {
@@ -69,7 +132,6 @@ void Manager::moveCurrentPlayer(unsigned short int positionOffset) {
     try{
 
         m_players[m_currentPlayerIndex].updatePosition(positionOffset);
-
         processCurrentPlayerLanding(positionOffset);
 
     }
@@ -99,11 +161,12 @@ void Manager::processOwnableSpace(unsigned short int positionOffset, SpaceType t
         if(owner == &m_players[m_currentPlayerIndex]){
 
             switch(type){
-                case SpaceType::Property:
-                    unsigned short int currentHouses = m_players[m_currentPlayerIndex].getPropertyHouses(m_players[m_currentPlayerIndex].getPosition());
-                    if(currentHouses < HOUSE_HOTEL_CONVERSION 
-                        && ownsAllColor(spacesConfig[m_players[m_currentPlayerIndex].getPosition()].color, m_players[m_currentPlayerIndex])){
-                        playerBuildHouseHotel(m_players[m_currentPlayerIndex], m_players[m_currentPlayerIndex].getPosition(), currentHouses);
+                case SpaceType::Property:{
+                        unsigned short int currentHouses = m_players[m_currentPlayerIndex].getPropertyHouses(m_players[m_currentPlayerIndex].getPosition());
+                        if(currentHouses < HOUSE_HOTEL_CONVERSION 
+                            && ownsAllColor(spacesConfig[m_players[m_currentPlayerIndex].getPosition()].color, m_players[m_currentPlayerIndex])){
+                            playerBuildHouseHotel(m_players[m_currentPlayerIndex], m_players[m_currentPlayerIndex].getPosition(), currentHouses);
+                        }
                     }
                     return;
                     break;
@@ -168,7 +231,7 @@ void Manager::processCurrentPlayerLanding(unsigned short int positionOffset) {
                 processCardSpace((spacesConfig[m_players[m_currentPlayerIndex].getPosition()].name == "Chance" ));
                 break;
             case SpaceType::Special:
-                // Handle special space logic here (e.g., Go, Jail, Free Parking)
+                processSpecialSpace();
                 break;
         }
     }
@@ -299,6 +362,38 @@ void Manager::moneyTransfer(Player& from, Player& to, unsigned int amount) {
     
 }
 
+void Manager::moneyTransferBank(Player& from, unsigned int amount) {
+    
+    if (from.getMoney() > amount) {
+        from.updateMoney(-amount);
+    }
+    else{
+
+        //can from player make up the difference?
+        bool canMakeUpDifference = (from.getSellableNetWorth() >= amount);
+        if(canMakeUpDifference){
+            //ask from player to sell assets to make up the difference
+            SellOptions options;
+            options.formulateSellOptions(from);
+            SellOptions soldOptions = m_playerInputStrategy->askToSellForMoney(amount - from.getMoney(), options);
+            sellAssetsForMoney(from, soldOptions);
+
+            if(from.getMoney() >= amount){
+                from.updateMoney(-amount);
+            } else {
+                throw std::runtime_error("Mistake to sellable networth calculation!!!");
+            }
+
+        }
+        else{
+            //declare bankruptcy
+            executeBankruptcyViaBank(from);
+        }
+
+        
+    }
+    
+}
 
 
 void Manager::sellAssetsForMoney(Player& from, SellOptions& soldOptions) {
@@ -353,9 +448,7 @@ void Manager::executeBankruptcyViaPlayer(Player& bankruptPlayer, Player& credito
     creditorPlayer.updateMoney(bankruptPlayer.getMoney());
     bankruptPlayer.updateMoney(-static_cast<int>(bankruptPlayer.getMoney()));
 
-    m_players.erase(std::remove_if(m_players.begin(), m_players.end(), 
-        [&bankruptPlayer](const Player& player) { return player.getName() == bankruptPlayer.getName(); }), m_players.end());
-
+    removeDefeatedPlayerFromGame(bankruptPlayer);
 }
 
 void Manager::playerBuySpace(Player& player, unsigned short int spaceIndex){
@@ -430,15 +523,12 @@ void Manager::executeBankruptcyViaBank(Player& bankruptPlayer){
 
     bankruptPlayer.updateMoney(-static_cast<int>(bankruptPlayer.getMoney()));
 
-    m_players.erase(std::remove_if(m_players.begin(), m_players.end(), 
-        [&bankruptPlayer](const Player& player) { return player.getName() == bankruptPlayer.getName(); }), m_players.end());
+    removeDefeatedPlayerFromGame(bankruptPlayer);
 }
 
-unsigned short int Manager::askCurrentPlayerToRoll2D6(){
+bool Manager::askCurrentPlayerToRoll2D6(unsigned short int& roll){
     PRINT("Player to roll:" + m_players[m_currentPlayerIndex].getName());
-    unsigned short int roll;
-    m_playerInputStrategy->roll2d6Dice(roll);
-    return roll;
+    return m_playerInputStrategy->roll2d6Dice(roll);
 }
 
 
@@ -460,29 +550,13 @@ void Manager::processCardSpace(bool isChance){
                 advanceToGo();
                 break;
             case ChanceCardType::Advance_to_Boardwalk:
-                for(auto& sc : spacesConfig){
-                    if(sc.name == "Boardwalk"){
-                        advanceToSpace(sc);
-                        break;
-                    }
-                }
-                
+                advanceToSpace(getSpaceConfigByName("Boardwalk"));
                 break;
             case ChanceCardType::Advance_to_illinois_Avenue:
-                for(auto& sc : spacesConfig){
-                    if(sc.name == "Illinois Avenue"){
-                        advanceToSpace(sc);
-                        break;
-                    }
-                }
+                advanceToSpace(getSpaceConfigByName("Illinois Avenue"));
                 break;
             case ChanceCardType::Advance_to_St_Charles_Place:
-                for(auto& sc : spacesConfig){
-                    if(sc.name == "St. Charles Place"){
-                        advanceToSpace(sc);
-                        break;
-                    }
-                }
+                advanceToSpace(getSpaceConfigByName("St. Charles Place"));
                 break;
             case ChanceCardType::Advance_to_nearest_Railroad_1:
                 advanceToSpace(getClosestSpaceType(SpaceType::Railroad));
@@ -494,23 +568,13 @@ void Manager::processCardSpace(bool isChance){
                 advanceToSpace(getClosestSpaceType(SpaceType::Utility));
                 break;
             case ChanceCardType::Take_a_trip_to_Reading_Railroad:
-                for(auto& sc : spacesConfig){
-                    if(sc.name == "Reading Railroad"){
-                        advanceToSpace(sc);
-                        break;
-                    }
-                }
+                advanceToSpace(getSpaceConfigByName("Reading Railroad"));
                 break;
             case ChanceCardType::Go_Back_3_Spaces:
                 goBack3Spaces();
                 break;
             case ChanceCardType::Go_Directly_to_Jail:
-                for(auto& sc : spacesConfig){
-                    if(sc.name == "Jail"){
-                        advanceToSpace(sc);
-                        break;
-                    }
-                }
+                advanceToSpace(getSpaceConfigByName("Jail"));
                 break;
             case ChanceCardType::Get_Out_of_Jail_Free:
                 m_players[m_currentPlayerIndex].incrementGetoutofJail();
@@ -531,7 +595,7 @@ void Manager::processCardSpace(bool isChance){
                 m_players[m_currentPlayerIndex].updateMoney(BUILDING_LOAN_MATURES_AMOUNT);
                 break;
             default:
-                throw std::runtime_error("Unaccounted for ChanceCardType!!!");
+                throw std::runtime_error("Unaccounted for ChanceCardType: " + std::to_string(randNum) + "!!!");
                 break;
         }
     }
@@ -542,36 +606,52 @@ void Manager::processCardSpace(bool isChance){
                 advanceToGo();
                 break;
             case CommunityChestCardType::Bank_error_in_your_favor:
+                m_players[m_currentPlayerIndex].updateMoney(BANK_ERROR_IN_YOUR_FAVOR_AMOUNT);
                 break;
             case CommunityChestCardType::Doctor_fees:
+                moneyTransferBank(m_players[m_currentPlayerIndex], DOCTOR_FEES_AMOUNT);
                 break;
             case CommunityChestCardType::From_sale_of_stock:
+                m_players[m_currentPlayerIndex].updateMoney(SALE_OF_STOCK_AMOUNT);
                 break;
             case CommunityChestCardType::Get_Out_of_Jail_Free:
+                m_players[m_currentPlayerIndex].incrementGetoutofJail();
                 break;
             case CommunityChestCardType::Go_Directly_to_Jail:
+                advanceToSpace(getSpaceConfigByName("Jail"));
                 break;
             case CommunityChestCardType::Grand_Opera_Night:
+                grandOperaNight();
                 break;
             case CommunityChestCardType::Holiday:
+                m_players[m_currentPlayerIndex].updateMoney(HOLIDAY_AMOUNT);
                 break;
             case CommunityChestCardType::Income_tax_refund:
+                m_players[m_currentPlayerIndex].updateMoney(INCOME_TAX_REFUND_AMOUNT);
                 break;
             case CommunityChestCardType::It_is_your_birthday:
+                birthday();
                 break;
             case CommunityChestCardType::Life_insurance_matures:
+                m_players[m_currentPlayerIndex].updateMoney(LIFE_INSURANCE_MATURES_AMOUNT);
                 break;
             case CommunityChestCardType::Pay_hospital_fees:
+                moneyTransferBank(m_players[m_currentPlayerIndex], PAY_HOSPITAL_FEES_AMOUNT);
                 break;
             case CommunityChestCardType::Pay_school_fees:
+                moneyTransferBank(m_players[m_currentPlayerIndex], PAY_SCHOOL_FEES_AMOUNT);
                 break;
             case CommunityChestCardType::Receive_consultancy:
+                m_players[m_currentPlayerIndex].updateMoney(RECEIVE_CONSULTANCY_AMOUNT);
                 break;
             case CommunityChestCardType::Assessed_for_street_repairs:
+                AssessedStreetRepairs();
                 break;
             case CommunityChestCardType::You_have_won_second_prize_in_a_beauty_contest:
+                m_players[m_currentPlayerIndex].updateMoney(BEAUTY_CONTEST_PRIZE_AMOUNT);
                 break;
             case CommunityChestCardType::You_inherit_money:
+                m_players[m_currentPlayerIndex].updateMoney(INHERIT_MONEY_AMOUNT);
                 break;
             default:
                 throw std::runtime_error("Unaccounted for CommunityChestCardType!!!");
@@ -608,7 +688,9 @@ void Manager::advanceToSpace(const SpacesConfig& sConfig){
     }
 
     if(offset >= (spacesConfig.size() - m_players[m_currentPlayerIndex].getPosition())){
-        m_players[m_currentPlayerIndex].updateMoney(GO_PAY);
+        if(!(sConfig.name == "Jail")){
+            m_players[m_currentPlayerIndex].updateMoney(GO_PAY);
+        }        
     }
 
     m_players[m_currentPlayerIndex].updatePosition(offset);
@@ -699,4 +781,192 @@ bool Manager::doesPlayerExist(const std::string& plName){
     }
 
     return false;
+}
+
+const SpacesConfig& Manager::getSpaceConfigByName(const std::string& spaceName){
+
+    for(auto& sc : spacesConfig){
+        if(sc.name == spaceName){
+            return sc;
+        }
+    }
+
+    throw std::runtime_error("Space name not found in spacesConfig!!!");
+    
+}
+
+void Manager::grandOperaNight(){
+
+    for(auto& pl : m_players){
+        if(pl == m_players[m_currentPlayerIndex]){
+            continue;
+        }
+        moneyTransfer(pl, m_players[m_currentPlayerIndex], GRAND_OPERA_NIGHT_AMOUNT);
+    }
+}
+
+void Manager::birthday(){
+
+    for(auto& pl : m_players){
+        if(pl == m_players[m_currentPlayerIndex]){
+            continue;
+        }
+        moneyTransfer(m_players[m_currentPlayerIndex], pl, BIRTHDAY_AMOUNT);
+    }
+}
+
+void Manager::AssessedStreetRepairs(){
+
+    unsigned int amount = 0;
+
+    SellOptions props;
+
+    props.formulateSellOptions(m_players[m_currentPlayerIndex]);
+
+    for(auto& pr : props.propertiesToSell){
+
+        if(pr.second > 0){
+            if(pr.second < HOUSE_HOTEL_CONVERSION){
+                amount += pr.second * ASSESSED_STREET_REPAIRS_HOUSE_COST;
+            }
+            else{
+                amount += ASSESSED_STREET_REPAIRS_HOTEL_COST;
+            }
+        }
+    }
+
+    moneyTransferBank(m_players[m_currentPlayerIndex], amount);
+
+}
+
+void Manager::processSpecialSpace(){
+
+    SpecialSpaceType sType = stringToSpecialSpaceType(spacesConfig[m_players[m_currentPlayerIndex].getPosition()].name);
+
+    switch(sType){
+        case SpecialSpaceType::Go:
+            //do nothing
+            //handled during movement calculation
+            break;
+        case SpecialSpaceType::Jail:
+            Jail();
+            break;
+        case SpecialSpaceType::FreeParking:
+            //do nothing
+            break;
+        case SpecialSpaceType::GoToJail:
+            advanceToSpace(getSpaceConfigByName("Jail"));
+            break;
+        default:
+            throw std::runtime_error("Unaccounted for SpecialSpaceType" + std::to_string(static_cast<int>(sType)) + "!!!");
+            break;
+
+    }
+
+}
+
+void Manager::Jail(){
+
+    unsigned short int count = 0;
+    
+    //trying to roll doubles to get out of jail
+    if(isPlayerInJail(m_players[m_currentPlayerIndex], count)){
+
+        unsigned short int roll = 0;
+        bool rolledDouble = askCurrentPlayerToRoll2D6(roll);
+
+        if(!rolledDouble){
+            count += 1;
+            if(count >= 3){
+                
+                removePlayerFromJailList(m_players[m_currentPlayerIndex]);
+                std::string name = m_players[m_currentPlayerIndex].getName();
+                if(m_players[m_currentPlayerIndex].canGetoutofJail()){
+                    m_players[m_currentPlayerIndex].decrementGetoutofJail();
+                }
+                else{
+                    moneyTransferBank(m_players[m_currentPlayerIndex], JAIL_RELEASE_AMOUNT);
+                }             
+            }
+            else{
+
+                //update failed double roll attempts count
+                for(auto& jl : m_jail){
+                    if(jl.first == m_players[m_currentPlayerIndex].getName()){
+                        jl.second = count;
+                    }
+                }
+            }
+        }
+        else{
+            moveCurrentPlayer(roll);
+        }        
+
+    }
+    else{ //new jailee
+        unsigned short int choice = m_playerInputStrategy->JailOptions(m_players[m_currentPlayerIndex].canGetoutofJail());
+
+        switch(choice){
+            case 0: // Pay to get out of jail
+                moneyTransferBank(m_players[m_currentPlayerIndex], JAIL_RELEASE_AMOUNT);
+                break;
+            case 1: // Attempt to roll doubles
+                m_jail.push_back({m_players[m_currentPlayerIndex].getName(), 0}); // Initialize jail turn count
+                break;
+            case 2: // Use get out of jail card
+                m_players[m_currentPlayerIndex].decrementGetoutofJail();
+                break;
+
+        }
+    }
+
+}
+
+
+bool Manager::isPlayerInJail(const Player& player, unsigned short int& count){
+    for(auto& jl : m_jail){
+        if(jl.first == player.getName()){
+            count = jl.second;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void Manager::removePlayerFromJailList(const Player& player){
+
+    unsigned int i = 0;
+    for(auto& jl : m_jail){
+        if(jl.first == player.getName()){
+            m_jail.erase(m_jail.begin() + i);
+            return;
+        }
+        i++;
+    }
+
+    throw std::runtime_error("Player: " + player.getName() + " not found in jail to release!!!");
+    return;
+}
+
+void Manager::removeDefeatedPlayerFromGame(const Player& player){
+
+    unsigned int i = 0;
+
+    for(auto& pl : m_players){
+        if(pl == player){
+            m_players.erase(m_players.begin() + i);
+            return;
+        }
+        i++;
+    }
+
+}
+
+bool Manager::isSpaceOwnable(const SpacesConfig& spaceConfig){
+
+    return ((spaceConfig.type == SpaceType::Property) ||                
+            (spaceConfig.type == SpaceType::Utility) ||
+            (spaceConfig.type == SpaceType::Railroad));
+
 }

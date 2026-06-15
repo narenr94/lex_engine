@@ -4,11 +4,17 @@
 #include <string>
 #include <map>
 #include <memory>
+#include <utility>
 
-class Player; // Forward declaration
-class PlayerInputStrategy; // Forward declaration
-struct SpacesConfig; // Forward declaration
-struct SellOptions; // Forward declaration
+//-------------- Forward declaration
+class Player;
+class PlayerInputStrategy;
+struct SpacesConfig;
+struct SellOptions;
+enum class SpaceColor;
+enum class SpaceType;
+
+//--------------
 
 class Manager {
     private:
@@ -18,7 +24,9 @@ class Manager {
         std::map<SpaceColor, std::vector<unsigned short int>> m_colorGroups; // Map of color groups to their respective property indices
         PlayerInputStrategy* m_playerInputStrategy = nullptr; // Strategy for handling player input (e.g., CLI)
 
-        std::vector<std::unique_ptr<SpacesConfig>> m_unownedSpaces; 
+        std::vector<std::unique_ptr<SpacesConfig>> m_unownedSpaces;
+
+        std::vector<std::pair<std::string, unsigned short int>> m_jail; //player name, number of double rolls tried
 
         void processCurrentPlayerLanding(unsigned short int positionOffset);
 
@@ -28,9 +36,13 @@ class Manager {
 
         void processCardSpace(bool isChance);
 
+        void processSpecialSpace();
+
         void sellAssetsForMoney(Player& player, SellOptions& soldOptions);
 
         bool isSpaceOwned(unsigned short int spaceIndex, Player* owner) const;
+
+        bool isSpaceOwnable(const SpacesConfig& spaceConfig);
 
         unsigned short int calculatePropertyRent(Player& owner, unsigned short int position);
 
@@ -42,6 +54,8 @@ class Manager {
 
         void moneyTransfer(Player& from, Player& to, unsigned int amount);
 
+        void moneyTransferBank(Player& from, unsigned int amount);
+
         void playerBuySpace(Player& player, unsigned short int spaceIndex);
 
         void executeBankruptcyViaPlayer(Player& bankruptPlayer, Player& creditorPlayer);
@@ -52,7 +66,7 @@ class Manager {
 
         bool ownsAllColor(SpaceColor sc, Player& owner);
 
-        unsigned short int askCurrentPlayerToRoll2D6();
+        bool askCurrentPlayerToRoll2D6(unsigned short int& roll);
 
         void moveCurrentPlayer(unsigned short int positionOffset);
 
@@ -61,6 +75,20 @@ class Manager {
         void payUpOrBankrupt(unsigned int amount);
 
         bool doesPlayerExist(const std::string& plName);
+
+        const SpacesConfig& getSpaceConfigByName(const std::string& spaceName);
+
+        void grandOperaNight();
+
+        void birthday();
+
+        void AssessedStreetRepairs();
+
+        void gameLoop();
+
+        void Jail();
+
+        bool rollAndMoveCurrentPlayer();
 
         //card actions
 
@@ -75,6 +103,12 @@ class Manager {
         void speedingFine();
 
         void chairmanOfBoard();
+
+        bool isPlayerInJail(const Player& player, unsigned short int& count);
+
+        void removePlayerFromJailList(const Player& player);
+
+        void removeDefeatedPlayerFromGame(const Player& player);
 
 
     public:

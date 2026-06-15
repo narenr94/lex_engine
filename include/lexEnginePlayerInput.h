@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string>
+#include <vector>
+#include <map>
 
 struct SpacesConfig; //Forward Declaration
 struct SellOptions; //Forward Declaration
@@ -10,11 +12,13 @@ class PlayerInputStrategy{
     public:
         virtual ~PlayerInputStrategy() = default;
 
-        virtual void roll2d6Dice(unsigned short int& roll) = 0;
+        virtual bool roll2d6Dice(unsigned short int& roll) = 0;
 
         virtual SellOptions askToSellForMoney(unsigned int amountNeeded, const SellOptions& options) = 0;
 
         virtual bool askToBuySpace(SpacesConfig& spConfig) = 0;
+
+        virtual unsigned short int JailOptions(bool getOutOfJailCardAvailable) = 0;
 
         virtual unsigned short int askToBuildHouseHotel(SpacesConfig& spConfig, unsigned short int currentHouses, unsigned short int maxBuyable) = 0;
 
@@ -22,7 +26,7 @@ class PlayerInputStrategy{
 
         unsigned int calculateRailroadSellValue(unsigned short int railroadIndex);
 
-        unsigned int calculateUtilitySellValue(unsigned short int utilityIndex);
+        unsigned int calculateUtilitySellValue(unsigned short int utilityIndex);        
         
 };
 
@@ -30,7 +34,7 @@ class PlayerInputStrategy{
 class PlayerInputCli : public PlayerInputStrategy {
 
     private:
-        std::vector<unsigned short int> PlayerInputCli::displayLiquidationMenu(const std::map<unsigned short int, unsigned short int>& properties, 
+        std::vector<unsigned short int> displayLiquidationMenu(const std::map<unsigned short int, unsigned short int>& properties, 
                                             const std::vector<unsigned short int>& railroads, 
                                             const std::vector<unsigned short int>& utilities);
 
@@ -44,10 +48,12 @@ class PlayerInputCli : public PlayerInputStrategy {
         ~PlayerInputCli();
 
 
-        void roll2d6Dice(unsigned short int& roll);
+        bool roll2d6Dice(unsigned short int& roll);
         SellOptions askToSellForMoney(unsigned int amountNeeded, const SellOptions& options);
 
         bool askToBuySpace(SpacesConfig& spConfig);
 
         unsigned short int askToBuildHouseHotel(SpacesConfig& spConfig, unsigned short int currentHouses, unsigned short int maxBuyable);
+
+        unsigned short int JailOptions(bool getOutOfJailCardAvailable);
 };
