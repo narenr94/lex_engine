@@ -4,6 +4,7 @@
 #include "playerInput.h"
 #include "cards.h"
 #include "special.h"
+#include "logger.h"
 
 #include <stdexcept>
 #include <algorithm>

@@ -26,15 +26,15 @@ set(HEADERS
 )
 
 # Create shared library
-add_library(LexEngine SHARED ${SOURCES})
+add_library(lexEngine SHARED ${SOURCES})
 
 # Set library properties
-set_target_properties(LexEngine PROPERTIES
+set_target_properties(lexEngine PROPERTIES
     PUBLIC_HEADER "${HEADERS}"
 )
 
 # Include directories
-target_include_directories(LexEngine
+target_include_directories(lexEngine
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
@@ -44,7 +44,7 @@ target_include_directories(LexEngine
 include(GNUInstallDirs)
 
 # Install the library
-install(TARGETS LexEngine
+install(TARGETS lexEngine
     LIBRARY DESTINATION lib
 )
 

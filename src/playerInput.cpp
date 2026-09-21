@@ -1,6 +1,7 @@
 #include "playerInput.h"
 #include "spaces.h"
 #include "player.h"
+#include "logger.h"
 
 #include <random>
 #include <algorithm>
