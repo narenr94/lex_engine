@@ -11,6 +11,12 @@ Player::Player(std::string name, unsigned short int position, unsigned int money
 
 }
 
+void Player::logPrint(const std::string& log){
+
+    PRINT("[Player:" + name + "]:" + log);
+
+}
+
 void Player::updatePosition(unsigned short int positionOffset) {
     position = (position + positionOffset) % spacesConfig.size(); 
 }
@@ -20,17 +26,23 @@ void Player::updateMoney(int amountOffset) {
         money = 0; 
     } else {
         money += amountOffset;
+        logPrint("Added money: " + std::to_string(amountOffset));
+        logPrint("Total Money: " + std::to_string(money));
     }
 }
 
 void Player::addProperty(std::unique_ptr<SpacesConfig> property, unsigned short int houses) {
+
+    logPrint("Adding Property : " + property->name);
     ownedProperties.push_back({std::move(property), houses});
+    
 }
 
 std::unique_ptr<SpacesConfig> Player::removeProperty(unsigned short int propertyIndex) {
     
     for (auto it = ownedProperties.begin(); it != ownedProperties.end(); ++it) {
         if (it->property->index == propertyIndex) {
+            logPrint("Removing Property : " + it->property->name);
             std::unique_ptr<SpacesConfig> ret = std::move(it->property);
             ownedProperties.erase(it);  // erase by iterator
             return ret;
@@ -41,6 +53,7 @@ std::unique_ptr<SpacesConfig> Player::removeProperty(unsigned short int property
 }
 
 void Player::addRailroad(std::unique_ptr<SpacesConfig> railroadIndex) {
+    logPrint("Adding Railroad : " + railroadIndex->name);
     ownedRailroads.push_back(std::move(railroadIndex));
 }
 
@@ -48,6 +61,7 @@ std::unique_ptr<SpacesConfig>  Player::removeRailroad(unsigned short int railroa
     
     for (auto it = ownedRailroads.begin(); it != ownedRailroads.end(); ++it) {
         if ((*it)->index == railroadIndex) {
+            logPrint("Removing Railroad : " + (*it)->name);
             std::unique_ptr<SpacesConfig> ret = std::move(*it);
             ownedRailroads.erase(it);  // erase by iterator
             return ret;
@@ -58,12 +72,14 @@ std::unique_ptr<SpacesConfig>  Player::removeRailroad(unsigned short int railroa
 }
 
 void Player::addUtility(std::unique_ptr<SpacesConfig> utility) {
+    logPrint("Adding Utility : " + utility->name);
     ownedUtilities.push_back(std::move(utility));
 }
 
 std::unique_ptr<SpacesConfig> Player::removeUtility(unsigned short int utilityIndex) {
     for(auto it = ownedUtilities.begin(); it != ownedUtilities.end(); it++){
         if((*it)->index == utilityIndex){
+            logPrint("Removing Utility : " + (*it)->name);
             std::unique_ptr<SpacesConfig> ret = std::move(*it);
             ownedUtilities.erase(it);
             return ret;
@@ -137,6 +153,7 @@ void Player::addHousesToProperty(unsigned short int propertyIndex, unsigned shor
     
     for(auto& prop : ownedProperties){
         if(prop.property->index == propertyIndex){
+            logPrint("Adding " + std::to_string(housesToAdd) + " houses to " + prop.property->name);
             prop.houses += housesToAdd;
             if(prop.houses > HOUSE_HOTEL_CONVERSION){
                 prop.houses = HOUSE_HOTEL_CONVERSION;
@@ -148,6 +165,7 @@ void Player::addHousesToProperty(unsigned short int propertyIndex, unsigned shor
 void Player::removeHousesFromProperty(unsigned short int propertyIndex, unsigned short int housesToRemove) {
     for(auto& prop : ownedProperties){
         if(prop.property->index == propertyIndex){
+            logPrint("Removing " + std::to_string(housesToRemove) + " houses from " + prop.property->name);
             if(housesToRemove > prop.houses){
                 prop.houses = 0;
             }

@@ -39,6 +39,8 @@ class Player {
 
         bool ownsUtility(unsigned short int utilityIndex) const;
 
+        void logPrint(const std::string& log);
+
     public:
         Player(std::string name, unsigned short int position, unsigned int money);
     

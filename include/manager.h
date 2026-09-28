@@ -39,7 +39,7 @@ class Manager {
 
         void sellAssetsForMoney(Player& player, SellOptions& soldOptions);
 
-        bool isSpaceOwned(unsigned short int spaceIndex, Player* owner) const;
+        bool isSpaceOwned(unsigned short int spaceIndex, Player*& owner) const;
 
         bool isSpaceOwnable(const SpacesConfig& spaceConfig);
 
@@ -108,6 +108,8 @@ class Manager {
         void removePlayerFromJailList(const Player& player);
 
         void removeDefeatedPlayerFromGame(const Player& player);
+
+        void logPrint(const std::string& log);
 
 
     public:

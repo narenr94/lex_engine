@@ -36,7 +36,9 @@ bool PlayerInputCli::roll2d6Dice(unsigned short int& roll){
 
     PRINT("Player:" + m_player->getName());
     PRINT("Enter any key to roll dice!!!");
-    std::cin.get(); // Wait for user input
+    
+    std::string input;
+    std::getline(std::cin, input);
 
     unsigned short int die1 = rollDie();
     unsigned short int die2 = rollDie();
@@ -106,12 +108,16 @@ std::vector<unsigned short int> PlayerInputCli::displayLiquidationMenu(const std
 unsigned short int PlayerInputCli::getPlayerChoice(unsigned short int optionsCount) {
     unsigned short int choice = 0;
     while (true) {
-        PRINT("Please enter the option number of the asset you wish to sell:");
-        if (!(std::cin >> choice)) {
-            PRINT("Invalid input. Please enter a number.");
-            std::cin.clear();
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            continue;
+        PRINT("Please enter the option number:");
+
+        std::string input;
+        std::getline(std::cin, input);
+
+        try{
+            choice = std::stoi(input);
+        }
+        catch(const std::invalid_argument& e) {
+            std::cout << "Not a valid number\n";
         }
 
         if (choice >= 1 && choice <= optionsCount) {
